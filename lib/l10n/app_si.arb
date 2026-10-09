@@ -8,5 +8,14 @@
   "scanMedicineLabel": "බෙහෙත් ලේබලය scan කරන්න",
   "enterManually": "අතින් ඇතුළත් කරන්න",
   "currentStreak": "වත්මන් අඛණ්ඩතාවය",
-  "saveMedicine": "බෙහෙත සුරකින්න"
+  "saveMedicine": "බෙහෙත සුරකින්න",
+  "appName": "MediCare",
+  "yourMedicines": "ඔයාගේ බෙහෙත්.",
+  "yourSupport": "ඔයාගෙ උදව්ව.",
+  "welcomeTagline": "ඔබ වෙනුවෙන් හෝ ඔබ ගැන සැලකිලිමත් වන අයෙකු සඳහා ගිණුමක් සාදන්න.",
+  "signUpAsPatient": "රෝගියා ලෙස ලියාපදිංචි වන්න",
+  "signUpAsCaregiver": "රැකබලා ගන්නෙකු ලෙස ලියාපදිංචි වන්න",
+  "signIn": "පිවිසෙන්න",
+  "exploreDemo": "Demo එක ගවේෂණය කරන්න",
+  "selectLanguage": "භාෂාව තෝරන්න/භ් ‍ රමණය වන්න"
 }

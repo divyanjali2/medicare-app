@@ -98,6 +98,60 @@ abstract class AppLocalizations {
     Locale('si')
   ];
 
+  /// No description provided for @appName.
+  ///
+  /// In en, this message translates to:
+  /// **'MediCare'**
+  String get appName;
+
+  /// No description provided for @yourMedicines.
+  ///
+  /// In en, this message translates to:
+  /// **'Your medicines.'**
+  String get yourMedicines;
+
+  /// No description provided for @yourSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Your support.'**
+  String get yourSupport;
+
+  /// No description provided for @welcomeTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account for yourself or someone you care for.'**
+  String get welcomeTagline;
+
+  /// No description provided for @signUpAsPatient.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up as Patient'**
+  String get signUpAsPatient;
+
+  /// No description provided for @signUpAsCaregiver.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up as Caregiver'**
+  String get signUpAsCaregiver;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get signIn;
+
+  /// No description provided for @exploreDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore the demo'**
+  String get exploreDemo;
+
+  /// No description provided for @selectLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Language / භාෂාව තෝරන්න'**
+  String get selectLanguage;
+
   /// No description provided for @taken.
   ///
   /// In en, this message translates to:

@@ -9,6 +9,34 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get appName => 'MediCare';
+
+  @override
+  String get yourMedicines => 'Your medicines.';
+
+  @override
+  String get yourSupport => 'Your support.';
+
+  @override
+  String get welcomeTagline =>
+      'Create an account for yourself or someone you care for.';
+
+  @override
+  String get signUpAsPatient => 'Sign up as Patient';
+
+  @override
+  String get signUpAsCaregiver => 'Sign up as Caregiver';
+
+  @override
+  String get signIn => 'Sign in';
+
+  @override
+  String get exploreDemo => 'Explore the demo';
+
+  @override
+  String get selectLanguage => 'Select Language / භාෂාව තෝරන්න';
+
+  @override
   String get taken => 'Taken';
 
   @override

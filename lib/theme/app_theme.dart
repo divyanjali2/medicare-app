@@ -18,6 +18,12 @@ class AppColors {
   static const Color textPrimary = Color(0xFF2B2B2B);
   static const Color textSecondary = Color(0xFF666666);
   static const Color caregiverAccent = Color(0xFF2C3E50);
+  static const Color brandTeal = Color(0xFF0E7485);
+  static const Color brandNavy = Color(0xFF183141);
+  static const Color softTealBadge = Color(0xFFD8EFF2);
+  static const Color borderSubtle = Color(0xFFD6D1CA);
+  static const Color textDark = Color(0xFF1E242B);
+  static const Color textMuted = Color(0xFF55606E);
 }
 
 class AppTheme {
