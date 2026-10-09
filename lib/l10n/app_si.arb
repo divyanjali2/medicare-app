@@ -60,5 +60,9 @@
   "patientViewSubtitle": "රෝගියාගේ දර්ශනය",
   "signOutButton": "ඉවත් වන්න",
   "testReminderButton": "පරීක්ෂණ සිහිකැඳවීම",
-  "goodMorningName": "සුභ උදෑසනක්, {name}"
+  "goodMorningName": "සුභ උදෑසනක්, {name}",
+  "addMedicineSubtitle": "වෛද් ‍ ය ලේබලය මත ඔබේ කැමරාව යොමු කරන්න.",
+  "scanMedicineLabelSubtitle": "අපි ඔබ වෙනුවෙන් විස්තර පුරවන්නෙමු",
+  "orText": "හෝ",
+  "addMedicineTip": "ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න."
 }

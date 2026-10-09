@@ -74,5 +74,17 @@
         "type": "String"
       }
     }
-  }
+  },
+  "addMedicineSubtitle": "Point your camera at the medicine label.",
+  "scanMedicineLabelSubtitle": "We'll fill in the details for you",
+  "orText": "or",
+  "addMedicineTip": "Tip: Place the bottle on a flat surface with good lighting.",
+  "backToScan": "Back to scan",
+  "scanComplete": "Scan complete",
+  "checkDetailsTitle": "Check the details",
+  "checkDetailsSubtitle": "Make sure everything matches your label.",
+  "medicineNameLabel": "Medicine name",
+  "dosageLabel": "Dosage",
+  "frequencyLabel": "How often?",
+  "instructionsLabel": "Instructions"
 }

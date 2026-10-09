@@ -197,4 +197,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String goodMorningName(String name) {
     return 'Good morning, $name';
   }
+
+  @override
+  String get addMedicineSubtitle => 'Point your camera at the medicine label.';
+
+  @override
+  String get scanMedicineLabelSubtitle => 'We\'ll fill in the details for you';
+
+  @override
+  String get orText => 'or';
+
+  @override
+  String get addMedicineTip =>
+      'Tip: Place the bottle on a flat surface with good lighting.';
 }

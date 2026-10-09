@@ -463,6 +463,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Good morning, {name}'**
   String goodMorningName(String name);
+
+  /// No description provided for @addMedicineSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at the medicine label.'**
+  String get addMedicineSubtitle;
+
+  /// No description provided for @scanMedicineLabelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll fill in the details for you'**
+  String get scanMedicineLabelSubtitle;
+
+  /// No description provided for @orText.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get orText;
+
+  /// No description provided for @addMedicineTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: Place the bottle on a flat surface with good lighting.'**
+  String get addMedicineTip;
 }
 
 class _AppLocalizationsDelegate

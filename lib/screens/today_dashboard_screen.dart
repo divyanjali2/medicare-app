@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
 import '../l10n/app_localizations.dart';
+import 'add_medicine_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
 
@@ -266,9 +267,15 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
           onTap: (index) {
             setState(() => _currentIndex = index);
             if (index == 1) {
-              Navigator.of(context).push(
+              Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const PillCalendarScreen()),
-              ).then((_) => setState(() => _currentIndex = 0));
+                (r) => false,
+              );
+            } else if (index == 2) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
+                (r) => false,
+              );
             }
           },
           items: [

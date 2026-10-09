@@ -200,4 +200,17 @@ class AppLocalizationsSi extends AppLocalizations {
   String goodMorningName(String name) {
     return 'සුභ උදෑසනක්, $name';
   }
+
+  @override
+  String get addMedicineSubtitle => 'වෛද් ‍ ය ලේබලය මත ඔබේ කැමරාව යොමු කරන්න.';
+
+  @override
+  String get scanMedicineLabelSubtitle => 'අපි ඔබ වෙනුවෙන් විස්තර පුරවන්නෙමු';
+
+  @override
+  String get orText => 'හෝ';
+
+  @override
+  String get addMedicineTip =>
+      'ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න.';
 }
