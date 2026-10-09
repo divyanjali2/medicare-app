@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/medicine.dart';
 import '../widgets/pill_calendar.dart';
+import '../l10n/app_localizations.dart';
 
 /// Screen 2 — Pill Calendar. Wraps the custom [PillCalendar] component.
 /// See docs/ui-ux.md section 2.2.
@@ -22,12 +23,12 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pill calendar')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)?.pillCalendarTitle ?? 'Pill calendar')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'A clear view of your progress.',
+            AppLocalizations.of(context)?.pillCalendarSubtitle ?? 'A clear view of your progress.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -61,7 +62,7 @@ class _DayDetailPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E3DD)),
       ),
-      child: Text('${day.day}/${day.month}/${day.year} — details go here'),
+      child: Text('${day.day}/${day.month}/${day.year} — ${AppLocalizations.of(context)?.detailsPlaceholder ?? 'details go here'}'),
     );
   }
 }

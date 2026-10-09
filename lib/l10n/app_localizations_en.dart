@@ -62,4 +62,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveMedicine => 'Save medicine';
+
+  @override
+  String get patientAccountTitle => 'PATIENT ACCOUNT';
+
+  @override
+  String get caregiverAccountTitle => 'CAREGIVER ACCOUNT';
+
+  @override
+  String get createAccountTitle => 'Create your account';
+
+  @override
+  String get accountDetailsSubtitle =>
+      'A few details help us personalize MediCare.';
+
+  @override
+  String get fullNameLabel => 'Full name';
+
+  @override
+  String get fullNameHint => 'Your full name';
+
+  @override
+  String get ageLabel => 'Age';
+
+  @override
+  String get ageHint => 'Age';
+
+  @override
+  String get phoneNumberLabel => 'Phone number';
+
+  @override
+  String get phoneNumberHint => '+94 77 123 4567';
+
+  @override
+  String get emailOptionalLabel => 'Email (optional)';
+
+  @override
+  String get emailOptionalHint => 'you@example.com';
+
+  @override
+  String get addEmergencyContact => 'Add emergency contact (optional)';
+
+  @override
+  String get contactNameLabel => 'Contact name';
+
+  @override
+  String get contactNameHint => 'Name';
+
+  @override
+  String get contactPhoneLabel => 'Contact phone';
+
+  @override
+  String get reminderPreferencesTitle => 'Reminder preferences';
+
+  @override
+  String get soundLabel => 'Sound';
+
+  @override
+  String get vibrationLabel => 'Vibration';
+
+  @override
+  String get reminderStyleLabel => 'Reminder style';
+
+  @override
+  String get gentleReminder => 'Gentle reminder';
+
+  @override
+  String get persistentReminder => 'Persistent reminder';
+
+  @override
+  String get silentReminder => 'Silent reminder';
+
+  @override
+  String get sendVerificationCode => 'Send verification code';
+
+  @override
+  String get backButton => 'Back';
+
+  @override
+  String get caregiverMode => 'Caregiver';
+
+  @override
+  String get goodMorning => 'Good morning';
+
+  @override
+  String get noMedicinesAdded => 'No medicines added yet. Tap + to add one.';
+
+  @override
+  String streakDaysCount(int count) {
+    return '$count days';
+  }
+
+  @override
+  String get pillCalendarTitle => 'Pill calendar';
+
+  @override
+  String get pillCalendarSubtitle => 'A clear view of your progress.';
+
+  @override
+  String get detailsPlaceholder => 'details go here';
+
+  @override
+  String get statusLate => 'Late';
+
+  @override
+  String get statusMissed => 'Missed';
+
+  @override
+  String get signInSubtitle =>
+      'Sign in to sync your medication schedules and caregiver links.';
+
+  @override
+  String get signInWithDemo => 'Sign in with demo account';
 }

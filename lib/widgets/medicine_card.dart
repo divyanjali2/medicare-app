@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/medicine.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// A single dose card on the Today dashboard, with large Taken/Skipped
 /// buttons (elderly-friendly: one tap, no forms). See docs/ui-ux.md 2.1.
@@ -76,7 +77,7 @@ class MedicineCard extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: isTaken ? null : onTaken,
                   icon: const Icon(Icons.check),
-                  label: const Text('Taken'),
+                  label: Text(AppLocalizations.of(context)?.taken ?? 'Taken'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.statusTaken,
                     foregroundColor: Colors.white,
@@ -88,7 +89,7 @@ class MedicineCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onSkipped,
                   icon: const Icon(Icons.skip_next),
-                  label: const Text('Skipped'),
+                  label: Text(AppLocalizations.of(context)?.skipped ?? 'Skipped'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.statusLate,
                     side: const BorderSide(color: AppColors.statusLate),

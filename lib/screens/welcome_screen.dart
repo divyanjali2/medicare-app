@@ -4,12 +4,12 @@ import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
+import '../widgets/language_selector.dart';
 import 'caregiver_signup_screen.dart';
 import 'patient_signup_screen.dart';
 import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
-/// Clean, localized onboarding screen using Flutter's official AppLocalizations
 /// with instant offline English and Sinhala support.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -49,42 +49,43 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             // MediCare Logo & Title
-                            Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.brandTeal,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Center(
-                                    child: _PulseHeartIcon(
-                                      size: 28,
-                                      color: Colors.white,
+                            Flexible(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandTeal,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Center(
+                                      child: _PulseHeartIcon(
+                                        size: 28,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  l10n?.appName ?? 'MediCare',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textDark,
-                                    letterSpacing: -0.3,
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      l10n?.appName ?? 'MediCare',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textDark,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
 
                             // Language Selector Pill
-                            _LanguagePillSelector(
-                              isSinhala: isSinhala,
-                              onSelected: (locale) {
-                                MediCareApp.setLocale(context, locale);
-                              },
-                            ),
+                            const LanguagePillSelector(),
                           ],
                         ),
 
@@ -246,18 +247,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sign In',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context)?.signIn ?? 'Sign In',
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textDark,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Sign in to sync your medication schedules and caregiver links.',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+            Text(
+              AppLocalizations.of(context)?.signInSubtitle ?? 'Sign in to sync your medication schedules and caregiver links.',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 15),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -279,7 +280,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                   );
                 },
-                child: const Text('Sign in with demo account'),
+                child: Text(AppLocalizations.of(context)?.signInWithDemo ?? 'Sign in with demo account'),
               ),
             ),
             const SizedBox(height: 12),
@@ -373,117 +374,6 @@ class _ActionPillButton extends StatelessWidget {
   }
 }
 
-/// Language Selector Pill in the top app bar
-class _LanguagePillSelector extends StatelessWidget {
-  final bool isSinhala;
-  final ValueChanged<Locale> onSelected;
-
-  const _LanguagePillSelector({
-    required this.isSinhala,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final label = isSinhala ? 'සිංහල' : 'English';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => _showLanguageMenu(context),
-        child: Ink(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD0D5DD), width: 1.1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.language_rounded,
-                size: 18,
-                color: Color(0xFF344054),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D2939),
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 18,
-                color: Color(0xFF344054),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLanguageMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(
-                'Select Language / භාෂාව තෝරන්න',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.language, color: AppColors.brandTeal),
-              title: const Text('English',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              trailing: !isSinhala
-                  ? const Icon(Icons.check, color: AppColors.brandTeal)
-                  : null,
-              onTap: () {
-                onSelected(const Locale('en'));
-                Navigator.of(ctx).pop();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.translate, color: AppColors.brandTeal),
-              title: const Text('සිංහල (Sinhala)',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              trailing: isSinhala
-                  ? const Icon(Icons.check, color: AppColors.brandTeal)
-                  : null,
-              onTap: () {
-                onSelected(const Locale('si'));
-                Navigator.of(ctx).pop();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Heart with ECG Pulse waveform icon painted crisply to match MediCare branding
 class _PulseHeartIcon extends StatelessWidget {

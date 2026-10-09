@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
+import '../l10n/app_localizations.dart';
 
 /// Screen 1 — Today / Home Dashboard (patient view).
 /// See docs/ui-ux.md section 2.1 for the full UI/UX rationale.
@@ -22,28 +23,28 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MediCare'),
+        title: Text(AppLocalizations.of(context)?.appName ?? 'MediCare'),
         actions: [
           TextButton.icon(
             onPressed: () {
               // TODO: navigate to caregiver view / switch account mode
             },
             icon: const Icon(Icons.people_outline),
-            label: const Text('Caregiver'),
+            label: Text(AppLocalizations.of(context)?.caregiverMode ?? 'Caregiver'),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Good morning', style: Theme.of(context).textTheme.headlineMedium),
+          Text(AppLocalizations.of(context)?.goodMorning ?? 'Good morning', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 16),
           _StreakCard(streakDays: _streakDays),
           const SizedBox(height: 24),
-          Text('Your medicines', style: Theme.of(context).textTheme.titleLarge),
+          Text(AppLocalizations.of(context)?.yourMedicines ?? 'Your medicines', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           if (_doses.isEmpty)
-            const Text('No medicines added yet. Tap + to add one.')
+            Text(AppLocalizations.of(context)?.noMedicinesAdded ?? 'No medicines added yet. Tap + to add one.')
           else
             ..._doses.map(
               (d) => MedicineCard(
@@ -93,17 +94,17 @@ class _StreakCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.local_fire_department, color: Colors.orange),
-                  SizedBox(width: 6),
-                  Text('CURRENT STREAK',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const Icon(Icons.local_fire_department, color: Colors.orange),
+                  const SizedBox(width: 6),
+                  Text((AppLocalizations.of(context)?.currentStreak ?? 'CURRENT STREAK').toUpperCase(),
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                '$streakDays days',
+                AppLocalizations.of(context)?.streakDaysCount(streakDays) ?? '$streakDays days',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,

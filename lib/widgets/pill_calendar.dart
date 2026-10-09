@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/medicine.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 /// Custom component (built by the student, not from a library) that shows
 /// a month grid color-coded by daily adherence status.
@@ -73,7 +75,7 @@ class PillCalendar extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          _buildLegend(),
+          _buildLegend(context),
         ],
       ),
     );
@@ -90,10 +92,7 @@ class PillCalendar extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
+    final locale = Localizations.localeOf(context).toString();
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -103,7 +102,7 @@ class PillCalendar extends StatelessWidget {
               onMonthChange(DateTime(month.year, month.month - 1)),
         ),
         Text(
-          '${months[month.month - 1]} ${month.year}',
+          DateFormat.yMMMM(locale).format(month),
           style: Theme.of(context).textTheme.titleLarge,
         ),
         IconButton(
@@ -128,13 +127,13 @@ class PillCalendar extends StatelessWidget {
     );
   }
 
-  Widget _buildLegend() {
+  Widget _buildLegend(BuildContext context) {
     return Wrap(
       spacing: 16,
-      children: const [
-        _LegendDot(color: AppColors.statusTaken, label: 'Taken'),
-        _LegendDot(color: AppColors.statusLate, label: 'Late'),
-        _LegendDot(color: AppColors.statusMissed, label: 'Missed'),
+      children: [
+        _LegendDot(color: AppColors.statusTaken, label: AppLocalizations.of(context)?.taken ?? 'Taken'),
+        _LegendDot(color: AppColors.statusLate, label: AppLocalizations.of(context)?.statusLate ?? 'Late'),
+        _LegendDot(color: AppColors.statusMissed, label: AppLocalizations.of(context)?.statusMissed ?? 'Missed'),
       ],
     );
   }

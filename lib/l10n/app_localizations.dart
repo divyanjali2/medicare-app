@@ -205,6 +205,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save medicine'**
   String get saveMedicine;
+
+  /// No description provided for @patientAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'PATIENT ACCOUNT'**
+  String get patientAccountTitle;
+
+  /// No description provided for @caregiverAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CAREGIVER ACCOUNT'**
+  String get caregiverAccountTitle;
+
+  /// No description provided for @createAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get createAccountTitle;
+
+  /// No description provided for @accountDetailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A few details help us personalize MediCare.'**
+  String get accountDetailsSubtitle;
+
+  /// No description provided for @fullNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get fullNameLabel;
+
+  /// No description provided for @fullNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your full name'**
+  String get fullNameHint;
+
+  /// No description provided for @ageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get ageLabel;
+
+  /// No description provided for @ageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get ageHint;
+
+  /// No description provided for @phoneNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get phoneNumberLabel;
+
+  /// No description provided for @phoneNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'+94 77 123 4567'**
+  String get phoneNumberHint;
+
+  /// No description provided for @emailOptionalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email (optional)'**
+  String get emailOptionalLabel;
+
+  /// No description provided for @emailOptionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'you@example.com'**
+  String get emailOptionalHint;
+
+  /// No description provided for @addEmergencyContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Add emergency contact (optional)'**
+  String get addEmergencyContact;
+
+  /// No description provided for @contactNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name'**
+  String get contactNameLabel;
+
+  /// No description provided for @contactNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get contactNameHint;
+
+  /// No description provided for @contactPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact phone'**
+  String get contactPhoneLabel;
+
+  /// No description provided for @reminderPreferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder preferences'**
+  String get reminderPreferencesTitle;
+
+  /// No description provided for @soundLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound'**
+  String get soundLabel;
+
+  /// No description provided for @vibrationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get vibrationLabel;
+
+  /// No description provided for @reminderStyleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder style'**
+  String get reminderStyleLabel;
+
+  /// No description provided for @gentleReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentle reminder'**
+  String get gentleReminder;
+
+  /// No description provided for @persistentReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Persistent reminder'**
+  String get persistentReminder;
+
+  /// No description provided for @silentReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Silent reminder'**
+  String get silentReminder;
+
+  /// No description provided for @sendVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send verification code'**
+  String get sendVerificationCode;
+
+  /// No description provided for @backButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get backButton;
+
+  /// No description provided for @caregiverMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Caregiver'**
+  String get caregiverMode;
+
+  /// No description provided for @goodMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning'**
+  String get goodMorning;
+
+  /// No description provided for @noMedicinesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'No medicines added yet. Tap + to add one.'**
+  String get noMedicinesAdded;
+
+  /// No description provided for @streakDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String streakDaysCount(int count);
+
+  /// No description provided for @pillCalendarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pill calendar'**
+  String get pillCalendarTitle;
+
+  /// No description provided for @pillCalendarSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A clear view of your progress.'**
+  String get pillCalendarSubtitle;
+
+  /// No description provided for @detailsPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'details go here'**
+  String get detailsPlaceholder;
+
+  /// No description provided for @statusLate.
+  ///
+  /// In en, this message translates to:
+  /// **'Late'**
+  String get statusLate;
+
+  /// No description provided for @statusMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get statusMissed;
+
+  /// No description provided for @signInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to sync your medication schedules and caregiver links.'**
+  String get signInSubtitle;
+
+  /// No description provided for @signInWithDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with demo account'**
+  String get signInWithDemo;
 }
 
 class _AppLocalizationsDelegate

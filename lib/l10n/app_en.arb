@@ -17,5 +17,48 @@
   "scanMedicineLabel": "Scan medicine label",
   "enterManually": "Enter manually",
   "currentStreak": "Current streak",
-  "saveMedicine": "Save medicine"
+  "saveMedicine": "Save medicine",
+  "patientAccountTitle": "PATIENT ACCOUNT",
+  "caregiverAccountTitle": "CAREGIVER ACCOUNT",
+  "createAccountTitle": "Create your account",
+  "accountDetailsSubtitle": "A few details help us personalize MediCare.",
+  "fullNameLabel": "Full name",
+  "fullNameHint": "Your full name",
+  "ageLabel": "Age",
+  "ageHint": "Age",
+  "phoneNumberLabel": "Phone number",
+  "phoneNumberHint": "+94 77 123 4567",
+  "emailOptionalLabel": "Email (optional)",
+  "emailOptionalHint": "you@example.com",
+  "addEmergencyContact": "Add emergency contact (optional)",
+  "contactNameLabel": "Contact name",
+  "contactNameHint": "Name",
+  "contactPhoneLabel": "Contact phone",
+  "reminderPreferencesTitle": "Reminder preferences",
+  "soundLabel": "Sound",
+  "vibrationLabel": "Vibration",
+  "reminderStyleLabel": "Reminder style",
+  "gentleReminder": "Gentle reminder",
+  "persistentReminder": "Persistent reminder",
+  "silentReminder": "Silent reminder",
+  "sendVerificationCode": "Send verification code",
+  "backButton": "Back",
+  "caregiverMode": "Caregiver",
+  "goodMorning": "Good morning",
+  "noMedicinesAdded": "No medicines added yet. Tap + to add one.",
+  "streakDaysCount": "{count} days",
+  "@streakDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pillCalendarTitle": "Pill calendar",
+  "pillCalendarSubtitle": "A clear view of your progress.",
+  "detailsPlaceholder": "details go here",
+  "statusLate": "Late",
+  "statusMissed": "Missed",
+  "signInSubtitle": "Sign in to sync your medication schedules and caregiver links.",
+  "signInWithDemo": "Sign in with demo account"
 }

@@ -62,4 +62,119 @@ class AppLocalizationsSi extends AppLocalizations {
 
   @override
   String get saveMedicine => 'බෙහෙත සුරකින්න';
+
+  @override
+  String get patientAccountTitle => 'රෝගී ගිණුම';
+
+  @override
+  String get caregiverAccountTitle => 'සත්කාරක ගිණුම';
+
+  @override
+  String get createAccountTitle => 'ඔබේ ගිණුම සාදන්න';
+
+  @override
+  String get accountDetailsSubtitle =>
+      'සමහර විස්තර අපට MediCare පුද්ගලාරෝපණය කිරීමට උපකාරී වේ.';
+
+  @override
+  String get fullNameLabel => 'සම්පුර්ණ නම';
+
+  @override
+  String get fullNameHint => 'ඔබේ සම්පූර්ණ නම';
+
+  @override
+  String get ageLabel => 'වයස';
+
+  @override
+  String get ageHint => 'වයස';
+
+  @override
+  String get phoneNumberLabel => 'දුරකථන අංකය';
+
+  @override
+  String get phoneNumberHint => '+94 77 123 4567';
+
+  @override
+  String get emailOptionalLabel => 'විද් ‍ යුත් තැපෑල (අත් ‍ යවශ් ‍ ය නොවේ)';
+
+  @override
+  String get emailOptionalHint => 'you@example.com';
+
+  @override
+  String get addEmergencyContact =>
+      'හදිසි සබඳතා එක් කරන්න (අත් ‍ යවශ් ‍ ය නොවේ)';
+
+  @override
+  String get contactNameLabel => 'සබඳතා නම';
+
+  @override
+  String get contactNameHint => 'නම';
+
+  @override
+  String get contactPhoneLabel => 'දුරකථනයෙන් සම්බන්ධ වන්න';
+
+  @override
+  String get reminderPreferencesTitle => 'සිහිකැඳවීම් මනාප';
+
+  @override
+  String get soundLabel => 'ශබ්දය';
+
+  @override
+  String get vibrationLabel => 'කම්පනය';
+
+  @override
+  String get reminderStyleLabel => 'සිහිකැඳවීමේ ශෛලිය';
+
+  @override
+  String get gentleReminder => 'මෘදු සිහිකැඳවීම';
+
+  @override
+  String get persistentReminder => 'නොනවතින සිහිකැඳවීම';
+
+  @override
+  String get silentReminder => 'නිශ්ශබ්ද සිහිකැඳවීම';
+
+  @override
+  String get sendVerificationCode => 'සත්යාපන කේතයක් යවන්න';
+
+  @override
+  String get backButton => 'පසු පසට';
+
+  @override
+  String get caregiverMode => 'රැකබලා ගන්නා';
+
+  @override
+  String get goodMorning => '- හම් - මෙයාලට විරුද්දව ලිව්වද ?';
+
+  @override
+  String get noMedicinesAdded =>
+      'තවම කිසිම බෙහෙතක් හදලා නැහැ. එකක් එක් කිරීමට + ටැප් කරන්න.';
+
+  @override
+  String streakDaysCount(int count) {
+    return 'දින $count ක්';
+  }
+
+  @override
+  String get pillCalendarTitle => 'පෙති දින දර්ශනය';
+
+  @override
+  String get pillCalendarSubtitle =>
+      'ඔබේ ප් රගතිය පිළිබඳ පැහැදිලි අවබෝධයක් ලබා ගන්න.';
+
+  @override
+  String get detailsPlaceholder => 'විස්තර මෙතැනට යන්න';
+
+  @override
+  String get statusLate => 'පරක්කුයි.';
+
+  @override
+  String get statusMissed => 'මඟහැරුණු';
+
+  @override
+  String get signInSubtitle =>
+      'ඔබේ ඖෂධ කාලසටහන් සහ රැකබලා ගන්නන්ගේ සබැඳි සමමුහුර්ත කිරීමට පිවිසෙන්න.';
+
+  @override
+  String get signInWithDemo => 'Demo ගිණුමෙන් පිවිසෙන්න';
 }
