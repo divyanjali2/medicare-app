@@ -174,4 +174,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInWithDemo => 'Sign in with demo account';
+
+  @override
+  String get welcomeBackTitle => 'WELCOME BACK';
+
+  @override
+  String get signInPhoneTitle => 'Sign in with your phone';
+
+  @override
+  String get signInPhoneSubtitle => 'We\'ll send a secure verification code.';
 }

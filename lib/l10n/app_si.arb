@@ -53,5 +53,8 @@
   "statusLate": "පරක්කුයි.",
   "statusMissed": "මඟහැරුණු",
   "signInSubtitle": "ඔබේ ඖෂධ කාලසටහන් සහ රැකබලා ගන්නන්ගේ සබැඳි සමමුහුර්ත කිරීමට පිවිසෙන්න.",
-  "signInWithDemo": "Demo ගිණුමෙන් පිවිසෙන්න"
+  "signInWithDemo": "Demo ගිණුමෙන් පිවිසෙන්න",
+  "welcomeBackTitle": "නැවතත් සාදරයෙන් පිළිගනිමු",
+  "signInPhoneTitle": "ඔබගේ දුරකථනයෙන් පිවිසෙන්න",
+  "signInPhoneSubtitle": "අපි ආරක්ෂිත සත් ‍ යාපන කේතයක් එවන්නෙමු."
 }

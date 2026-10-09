@@ -421,6 +421,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in with demo account'**
   String get signInWithDemo;
+
+  /// No description provided for @welcomeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WELCOME BACK'**
+  String get welcomeBackTitle;
+
+  /// No description provided for @signInPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your phone'**
+  String get signInPhoneTitle;
+
+  /// No description provided for @signInPhoneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a secure verification code.'**
+  String get signInPhoneSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -60,5 +60,8 @@
   "statusLate": "Late",
   "statusMissed": "Missed",
   "signInSubtitle": "Sign in to sync your medication schedules and caregiver links.",
-  "signInWithDemo": "Sign in with demo account"
+  "signInWithDemo": "Sign in with demo account",
+  "welcomeBackTitle": "WELCOME BACK",
+  "signInPhoneTitle": "Sign in with your phone",
+  "signInPhoneSubtitle": "We'll send a secure verification code."
 }

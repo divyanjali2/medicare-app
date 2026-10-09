@@ -177,4 +177,13 @@ class AppLocalizationsSi extends AppLocalizations {
 
   @override
   String get signInWithDemo => 'Demo ගිණුමෙන් පිවිසෙන්න';
+
+  @override
+  String get welcomeBackTitle => 'නැවතත් සාදරයෙන් පිළිගනිමු';
+
+  @override
+  String get signInPhoneTitle => 'ඔබගේ දුරකථනයෙන් පිවිසෙන්න';
+
+  @override
+  String get signInPhoneSubtitle => 'අපි ආරක්ෂිත සත් ‍ යාපන කේතයක් එවන්නෙමු.';
 }

@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'caregiver_signup_screen.dart';
 import 'patient_signup_screen.dart';
+import 'sign_in_screen.dart';
 import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
@@ -235,57 +236,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _handleSignIn(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppLocalizations.of(context)?.signIn ?? 'Sign In',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)?.signInSubtitle ?? 'Sign in to sync your medication schedules and caregiver links.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 15),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandTeal,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const TodayDashboardScreen(),
-                    ),
-                  );
-                },
-                child: Text(AppLocalizations.of(context)?.signInWithDemo ?? 'Sign in with demo account'),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SignInScreen(),
       ),
     );
   }
