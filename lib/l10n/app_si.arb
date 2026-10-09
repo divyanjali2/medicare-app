@@ -1,0 +1,12 @@
+{
+  "@@locale": "si",
+  "taken": "ගන්නා ලදී",
+  "skipped": "මඟ හැරුණි",
+  "today": "අද",
+  "calendar": "දින දර්ශනය",
+  "addMedicine": "බෙහෙතක් එකතු කරන්න",
+  "scanMedicineLabel": "බෙහෙත් ලේබලය scan කරන්න",
+  "enterManually": "අතින් ඇතුළත් කරන්න",
+  "currentStreak": "වත්මන් අඛණ්ඩතාවය",
+  "saveMedicine": "බෙහෙත සුරකින්න"
+}

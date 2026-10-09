@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "taken": "Taken",
+  "skipped": "Skipped",
+  "today": "Today",
+  "calendar": "Calendar",
+  "addMedicine": "Add a medicine",
+  "scanMedicineLabel": "Scan medicine label",
+  "enterManually": "Enter manually",
+  "currentStreak": "Current streak",
+  "saveMedicine": "Save medicine"
+}
