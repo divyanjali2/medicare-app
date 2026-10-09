@@ -183,4 +183,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInPhoneSubtitle => 'We\'ll send a secure verification code.';
+
+  @override
+  String get patientViewSubtitle => 'Patient view';
+
+  @override
+  String get signOutButton => 'Sign out';
+
+  @override
+  String get testReminderButton => 'Test reminder';
+
+  @override
+  String goodMorningName(String name) {
+    return 'Good morning, $name';
+  }
 }

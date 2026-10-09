@@ -186,4 +186,18 @@ class AppLocalizationsSi extends AppLocalizations {
 
   @override
   String get signInPhoneSubtitle => 'අපි ආරක්ෂිත සත් ‍ යාපන කේතයක් එවන්නෙමු.';
+
+  @override
+  String get patientViewSubtitle => 'රෝගියාගේ දර්ශනය';
+
+  @override
+  String get signOutButton => 'ඉවත් වන්න';
+
+  @override
+  String get testReminderButton => 'පරීක්ෂණ සිහිකැඳවීම';
+
+  @override
+  String goodMorningName(String name) {
+    return 'සුභ උදෑසනක්, $name';
+  }
 }

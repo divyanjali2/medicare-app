@@ -439,6 +439,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We\'ll send a secure verification code.'**
   String get signInPhoneSubtitle;
+
+  /// No description provided for @patientViewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Patient view'**
+  String get patientViewSubtitle;
+
+  /// No description provided for @signOutButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get signOutButton;
+
+  /// No description provided for @testReminderButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Test reminder'**
+  String get testReminderButton;
+
+  /// No description provided for @goodMorningName.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning, {name}'**
+  String goodMorningName(String name);
 }
 
 class _AppLocalizationsDelegate

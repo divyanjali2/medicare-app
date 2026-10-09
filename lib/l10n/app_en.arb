@@ -63,5 +63,16 @@
   "signInWithDemo": "Sign in with demo account",
   "welcomeBackTitle": "WELCOME BACK",
   "signInPhoneTitle": "Sign in with your phone",
-  "signInPhoneSubtitle": "We'll send a secure verification code."
+  "signInPhoneSubtitle": "We'll send a secure verification code.",
+  "patientViewSubtitle": "Patient view",
+  "signOutButton": "Sign out",
+  "testReminderButton": "Test reminder",
+  "goodMorningName": "Good morning, {name}",
+  "@goodMorningName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }
