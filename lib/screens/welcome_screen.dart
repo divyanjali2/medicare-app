@@ -4,6 +4,8 @@ import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
+import 'caregiver_signup_screen.dart';
+import 'patient_signup_screen.dart';
 import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
@@ -216,82 +218,19 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _handleSignUp(BuildContext context, UserRole role) {
-    final roleName = role == UserRole.patient ? 'Patient' : 'Caregiver';
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: role == UserRole.patient
-                      ? AppColors.softTealBadge
-                      : const Color(0xFFE2E8F0),
-                  child: Icon(
-                    role == UserRole.patient
-                        ? Icons.person_outline_rounded
-                        : Icons.people_outline_rounded,
-                    color: role == UserRole.patient
-                        ? AppColors.brandTeal
-                        : AppColors.brandNavy,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Text(
-                  'Sign up as $roleName',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              role == UserRole.patient
-                  ? 'Track your daily medication schedule, scan labels, and receive alerts.'
-                  : 'Monitor medications, receive adherence alerts, and assist your loved ones.',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 15),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: role == UserRole.patient
-                      ? AppColors.brandTeal
-                      : AppColors.brandNavy,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(26),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const TodayDashboardScreen(),
-                    ),
-                  );
-                },
-                child: Text('Continue to $roleName Dashboard'),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
+    if (role == UserRole.patient) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const PatientSignupScreen(),
         ),
-      ),
-    );
+      );
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const CaregiverSignupScreen(),
+        ),
+      );
+    }
   }
 
   void _handleSignIn(BuildContext context) {
