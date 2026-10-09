@@ -234,4 +234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get instructionsLabel => 'Instructions';
+
+  @override
+  String get allTakenTitle => 'All taken';
 }

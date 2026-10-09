@@ -238,4 +238,7 @@ class AppLocalizationsSi extends AppLocalizations {
 
   @override
   String get instructionsLabel => 'උපදෙස්';
+
+  @override
+  String get allTakenTitle => 'සියල්ල ගෙන ඇත';
 }

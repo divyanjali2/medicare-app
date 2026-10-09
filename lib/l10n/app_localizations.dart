@@ -535,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Instructions'**
   String get instructionsLabel;
+
+  /// No description provided for @allTakenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All taken'**
+  String get allTakenTitle;
 }
 
 class _AppLocalizationsDelegate

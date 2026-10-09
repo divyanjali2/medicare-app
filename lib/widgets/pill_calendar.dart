@@ -97,16 +97,20 @@ class PillCalendar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(Icons.chevron_left, color: AppColors.textDark),
           onPressed: () =>
               onMonthChange(DateTime(month.year, month.month - 1)),
         ),
         Text(
           DateFormat.yMMMM(locale).format(month),
-          style: Theme.of(context).textTheme.titleLarge,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right),
+          icon: const Icon(Icons.chevron_right, color: AppColors.textDark),
           onPressed: () =>
               onMonthChange(DateTime(month.year, month.month + 1)),
         ),
@@ -120,7 +124,14 @@ class PillCalendar extends StatelessWidget {
       children: labels
           .map((l) => Expanded(
                 child: Center(
-                  child: Text(l, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    l, 
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      color: AppColors.textDark,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
               ))
           .toList(),
@@ -128,13 +139,16 @@ class PillCalendar extends StatelessWidget {
   }
 
   Widget _buildLegend(BuildContext context) {
-    return Wrap(
-      spacing: 16,
-      children: [
-        _LegendDot(color: AppColors.statusTaken, label: AppLocalizations.of(context)?.taken ?? 'Taken'),
-        _LegendDot(color: AppColors.statusLate, label: AppLocalizations.of(context)?.statusLate ?? 'Late'),
-        _LegendDot(color: AppColors.statusMissed, label: AppLocalizations.of(context)?.statusMissed ?? 'Missed'),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+      child: Wrap(
+        spacing: 16,
+        children: [
+          _LegendDot(color: AppColors.statusTaken, label: AppLocalizations.of(context)?.taken ?? 'Taken'),
+          _LegendDot(color: AppColors.statusLate, label: AppLocalizations.of(context)?.statusLate ?? 'Late'),
+          _LegendDot(color: AppColors.statusMissed, label: AppLocalizations.of(context)?.statusMissed ?? 'Missed'),
+        ],
+      ),
     );
   }
 }
@@ -157,13 +171,26 @@ class _DayCell extends StatelessWidget {
   Color _bgColor() {
     switch (status) {
       case DoseStatus.taken:
-        return AppColors.statusTaken.withOpacity(0.25);
+        return const Color(0xFFCEEDCD); // Matches mockup green
       case DoseStatus.late:
-        return AppColors.statusLate.withOpacity(0.3);
+        return const Color(0xFFFEE1B4); // Matches mockup orange
       case DoseStatus.missed:
-        return AppColors.statusMissed.withOpacity(0.25);
+        return const Color(0xFFFBDAD6); // Matches mockup red
       default:
         return Colors.transparent;
+    }
+  }
+
+  Color _textColor() {
+    switch (status) {
+      case DoseStatus.taken:
+        return const Color(0xFF167B46);
+      case DoseStatus.late:
+        return const Color(0xFF8B4D00);
+      case DoseStatus.missed:
+        return const Color(0xFFB12F24);
+      default:
+        return AppColors.textDark;
     }
   }
 
@@ -175,12 +202,19 @@ class _DayCell extends StatelessWidget {
         decoration: BoxDecoration(
           color: _bgColor(),
           shape: BoxShape.circle,
-          border: isToday
-              ? Border.all(color: AppColors.textPrimary, width: 2)
+          border: isSelected
+              ? Border.all(color: AppColors.textDark, width: 1.5)
               : null,
         ),
         alignment: Alignment.center,
-        child: Text('${date.day}'),
+        child: Text(
+          '${date.day}',
+          style: TextStyle(
+            color: _textColor(),
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
       ),
     );
   }
@@ -198,12 +232,19 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 8),
+        Text(
+          label, 
+          style: const TextStyle(
+            fontSize: 14, 
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
       ],
     );
   }
