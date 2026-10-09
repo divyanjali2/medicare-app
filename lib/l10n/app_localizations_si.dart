@@ -213,4 +213,29 @@ class AppLocalizationsSi extends AppLocalizations {
   @override
   String get addMedicineTip =>
       'ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න.';
+
+  @override
+  String get backToScan => 'ස්කෑන් කිරීම වෙත ආපසු යන්න';
+
+  @override
+  String get scanComplete => 'ස්කෑන් කිරීම සම්පූර්ණයි';
+
+  @override
+  String get checkDetailsTitle => 'විස්තර පරීක්ෂා කරන්න';
+
+  @override
+  String get checkDetailsSubtitle =>
+      'සෑම දෙයක්ම ඔබේ ලේබලයට ගැලපෙන බවට වග බලා ගන්න.';
+
+  @override
+  String get medicineNameLabel => 'වෛද් ‍ ය විද් ‍ යාවේ නම';
+
+  @override
+  String get dosageLabel => 'matrawa';
+
+  @override
+  String get frequencyLabel => 'නිතරම කනවද?';
+
+  @override
+  String get instructionsLabel => 'උපදෙස්';
 }

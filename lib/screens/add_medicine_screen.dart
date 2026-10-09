@@ -8,6 +8,7 @@ import '../widgets/language_selector.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
+import 'add_manually_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   const AddMedicineScreen({super.key});
@@ -161,52 +162,61 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     const SizedBox(height: 32),
                     
                     // Scan Box
-                    CustomPaint(
-                      painter: DashedRectPainter(
-                        color: AppColors.brandTeal,
-                        strokeWidth: 1.5,
-                        gap: 5.0,
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 40),
-                        decoration: BoxDecoration(
-                          color: AppColors.brandTeal.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(20),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AddManuallyScreen(isFromScan: true),
+                          ),
+                        );
+                      },
+                      child: CustomPaint(
+                        painter: DashedRectPainter(
+                          color: AppColors.brandTeal,
+                          strokeWidth: 1.5,
+                          gap: 5.0,
                         ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: const BoxDecoration(
-                                color: AppColors.brandTeal,
-                                shape: BoxShape.circle,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          decoration: BoxDecoration(
+                            color: AppColors.brandTeal.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.brandTeal,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_outlined,
+                                  color: Colors.white,
+                                  size: 36,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt_outlined,
-                                color: Colors.white,
-                                size: 36,
+                              const SizedBox(height: 24),
+                              Text(
+                                l10n?.scanMedicineLabel ?? 'Scan medicine label',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.brandTeal,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              l10n?.scanMedicineLabel ?? 'Scan medicine label',
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.brandTeal,
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n?.scanMedicineLabelSubtitle ?? "We'll fill in the details for you",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textDark,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n?.scanMedicineLabelSubtitle ?? "We'll fill in the details for you",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -235,7 +245,13 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AddManuallyScreen(isFromScan: false),
+                            ),
+                          );
+                        },
                         icon: const Icon(Icons.add, size: 20),
                         label: Text(
                           l10n?.enterManually ?? 'Enter manually',

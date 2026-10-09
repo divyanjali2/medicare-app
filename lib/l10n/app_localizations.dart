@@ -487,6 +487,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tip: Place the bottle on a flat surface with good lighting.'**
   String get addMedicineTip;
+
+  /// No description provided for @backToScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to scan'**
+  String get backToScan;
+
+  /// No description provided for @scanComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan complete'**
+  String get scanComplete;
+
+  /// No description provided for @checkDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the details'**
+  String get checkDetailsTitle;
+
+  /// No description provided for @checkDetailsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Make sure everything matches your label.'**
+  String get checkDetailsSubtitle;
+
+  /// No description provided for @medicineNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Medicine name'**
+  String get medicineNameLabel;
+
+  /// No description provided for @dosageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dosage'**
+  String get dosageLabel;
+
+  /// No description provided for @frequencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How often?'**
+  String get frequencyLabel;
+
+  /// No description provided for @instructionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Instructions'**
+  String get instructionsLabel;
 }
 
 class _AppLocalizationsDelegate

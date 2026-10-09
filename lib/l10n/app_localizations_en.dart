@@ -210,4 +210,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addMedicineTip =>
       'Tip: Place the bottle on a flat surface with good lighting.';
+
+  @override
+  String get backToScan => 'Back to scan';
+
+  @override
+  String get scanComplete => 'Scan complete';
+
+  @override
+  String get checkDetailsTitle => 'Check the details';
+
+  @override
+  String get checkDetailsSubtitle => 'Make sure everything matches your label.';
+
+  @override
+  String get medicineNameLabel => 'Medicine name';
+
+  @override
+  String get dosageLabel => 'Dosage';
+
+  @override
+  String get frequencyLabel => 'How often?';
+
+  @override
+  String get instructionsLabel => 'Instructions';
 }

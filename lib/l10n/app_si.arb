@@ -64,5 +64,13 @@
   "addMedicineSubtitle": "වෛද් ‍ ය ලේබලය මත ඔබේ කැමරාව යොමු කරන්න.",
   "scanMedicineLabelSubtitle": "අපි ඔබ වෙනුවෙන් විස්තර පුරවන්නෙමු",
   "orText": "හෝ",
-  "addMedicineTip": "ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න."
+  "addMedicineTip": "ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න.",
+  "backToScan": "ස්කෑන් කිරීම වෙත ආපසු යන්න",
+  "scanComplete": "ස්කෑන් කිරීම සම්පූර්ණයි",
+  "checkDetailsTitle": "විස්තර පරීක්ෂා කරන්න",
+  "checkDetailsSubtitle": "සෑම දෙයක්ම ඔබේ ලේබලයට ගැලපෙන බවට වග බලා ගන්න.",
+  "medicineNameLabel": "වෛද් ‍ ය විද් ‍ යාවේ නම",
+  "dosageLabel": "matrawa",
+  "frequencyLabel": "නිතරම කනවද?",
+  "instructionsLabel": "උපදෙස්"
 }
