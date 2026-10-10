@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/today_dashboard_screen.dart';
 import 'theme/app_theme.dart';
+import 'screens/welcome_screen.dart';
 
 /// Entry point.
-///
-/// Firebase.initializeApp(), NotificationService.instance.init(), and
-/// SyncService.instance.startListening() are wired here once the Firebase
-/// project is configured (see docs/decisions.md -> "Backend setup").
-/// Left out of this scaffold so the project runs without a Firebase
-/// project attached yet.
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MediCareApp());
 }
 
@@ -44,6 +45,8 @@ class _MediCareAppState extends State<MediCareApp> {
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // TODO: swap for an auth-gated root once AuthService is wired up —
+      // this currently opens straight to the patient dashboard.
       home: const WelcomeScreen(),
     );
   }
