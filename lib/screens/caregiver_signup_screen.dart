@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../l10n/app_localizations.dart';
-import 'today_dashboard_screen.dart';
+import 'caregiver_screen.dart';
 
 class CaregiverSignupScreen extends StatefulWidget {
   const CaregiverSignupScreen({super.key});
@@ -33,7 +33,7 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
     if (_formKey.currentState!.validate()) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const TodayDashboardScreen(),
+          builder: (_) => const CaregiverScreen(),
         ),
       );
     }

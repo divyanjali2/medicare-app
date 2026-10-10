@@ -3,7 +3,9 @@ import '../theme/app_theme.dart';
 import '../main.dart'; // To access MediCareApp.setLocale
 
 class LanguagePillSelector extends StatelessWidget {
-  const LanguagePillSelector({super.key});
+  final bool isDark;
+
+  const LanguagePillSelector({super.key, this.isDark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -21,30 +23,34 @@ class LanguagePillSelector extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFD0D5DD), width: 1.1),
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+            border: Border.all(
+              color: isDark ? Colors.white24 : const Color(0xFFD0D5DD),
+              width: 1.1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.language_rounded,
                 size: 18,
-                color: Color(0xFF344054),
+                color: isDark ? Colors.white : const Color(0xFF344054),
               ),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D2939),
+                  color: isDark ? Colors.white : const Color(0xFF1D2939),
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 18,
-                color: Color(0xFF344054),
+                color: isDark ? Colors.white : const Color(0xFF344054),
               ),
             ],
           ),

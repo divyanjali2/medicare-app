@@ -7,6 +7,7 @@ import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
+import 'caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
 
@@ -89,42 +90,49 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandTeal,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n?.appName ?? 'MediCare',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
-                            ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.brandTeal,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          Text(
-                            l10n?.patientViewSubtitle ?? 'Patient view',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
+                          child: const Center(
+                            child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n?.appName ?? 'MediCare',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              Text(
+                                l10n?.patientViewSubtitle ?? 'Patient view',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   const LanguagePillSelector(),
                 ],
               ),
@@ -133,38 +141,48 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             // Action Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.person_outline, size: 18),
-                    label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
+                          (r) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.person_outline, size: 18),
+                      label: Text(l10n?.caregiverMode ?? 'Caregiver'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                        (r) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.logout, size: 18),
-                    label: Text(l10n?.signOutButton ?? 'Sign out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                          (r) => false,
+                        );
+                      },
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: Text(l10n?.signOutButton ?? 'Sign out'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             
@@ -200,23 +218,28 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n?.yourMedicines ?? 'Your medicines',
-                            style: const TextStyle(fontSize: 15, color: AppColors.textMuted),
-                          ),
-                          Text(
-                            l10n?.today ?? 'Today',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n?.yourMedicines ?? 'Your medicines',
+                              style: const TextStyle(fontSize: 15, color: AppColors.textMuted),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                            Text(
+                              l10n?.today ?? 'Today',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.notifications_none, size: 18),
@@ -274,6 +297,11 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             } else if (index == 2) {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
+                (r) => false,
+              );
+            } else if (index == 3) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const CaregiverScreen()),
                 (r) => false,
               );
             }

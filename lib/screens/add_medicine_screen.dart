@@ -9,6 +9,7 @@ import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
 import 'add_manually_screen.dart';
+import 'caregiver_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   const AddMedicineScreen({super.key});
@@ -31,6 +32,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     } else if (index == 1) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const PillCalendarScreen()),
+        (r) => false,
+      );
+    } else if (index == 3) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const CaregiverScreen()),
         (r) => false,
       );
     }

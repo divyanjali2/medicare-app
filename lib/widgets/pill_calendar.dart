@@ -101,12 +101,17 @@ class PillCalendar extends StatelessWidget {
           onPressed: () =>
               onMonthChange(DateTime(month.year, month.month - 1)),
         ),
-        Text(
-          DateFormat.yMMMM(locale).format(month),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
+        Expanded(
+          child: Center(
+            child: Text(
+              DateFormat.yMMMM(locale).format(month),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
         IconButton(
