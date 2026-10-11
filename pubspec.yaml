@@ -41,6 +41,7 @@ dependencies:
   # UI helpers
   table_calendar: ^3.1.2
   cupertino_icons: ^1.0.8
+  google_fonts: ^9.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Central color palette and ThemeData for MediCare.
 /// Colors chosen for an elderly-focused healthcare app: calm, muted,
@@ -38,6 +39,7 @@ class AppTheme {
         primary: AppColors.primaryTeal,
         surface: AppColors.backgroundOffWhite,
       ),
+      fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
           fontWeight: FontWeight.bold,

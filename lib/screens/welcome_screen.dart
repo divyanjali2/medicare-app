@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../l10n/app_localizations.dart';
-import '../main.dart';
 import '../models/user_profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'caregiver_signup_screen.dart';
 import 'patient_signup_screen.dart';
 import 'sign_in_screen.dart';
-import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
 /// with instant offline English and Sinhala support.
@@ -73,11 +72,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     child: Text(
                                       l10n?.appName ?? 'MediCare',
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 24,
                                         fontWeight: FontWeight.w800,
                                         color: AppColors.textDark,
-                                        letterSpacing: -0.3,
+                                        letterSpacing: -0.4,
                                       ),
                                     ),
                                   ),
@@ -90,95 +89,134 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           ],
                         ),
 
-                        const SizedBox(height: 36),
+                        const SizedBox(height: 16),
 
-                        // --- Security / Trust Shield Icon Box ---
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppColors.softTealBadge,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: _ShieldCheckIcon(
-                              size: 28,
-                              color: AppColors.brandTeal,
+                        // --- Welcome Hero Illustration ---
+                        Center(
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              maxHeight: 185,
+                              maxWidth: 240,
                             ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // --- Main Headline ---
-                        Text(
-                          '${l10n?.yourMedicines ?? "Your medicines."}\n${l10n?.yourSupport ?? "Your support."}',
-                          style: const TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textDark,
-                            height: 1.18,
-                            letterSpacing: -0.6,
+                            child: Image.asset(
+                              'assets/images/welcome_illustration.png',
+                              fit: BoxFit.contain,
+                              semanticLabel: 'MediCare Caregiver and Medication Support',
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 16),
 
-                        // --- Subtitle / Description ---
-                        Text(
-                          l10n?.welcomeTagline ??
-                              'Create an account for yourself or someone you care for.',
-                          style: const TextStyle(
-                            fontSize: 16.5,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.textMuted,
-                            height: 1.45,
+                        // --- Main Headline (Centered) ---
+                        Center(
+                          child: Text(
+                            '${l10n?.yourMedicines ?? "Your medicines."}\n${l10n?.yourSupport ?? "Your support."}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textDark,
+                              height: 1.2,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // --- Subtitle / Description (Centered) ---
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: Text(
+                              l10n?.welcomeTagline ??
+                                  'Create an account for yourself or someone you care for.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textMuted,
+                                height: 1.4,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 24),
 
                     // --- Action Buttons Section ---
                     Column(
                       children: [
-                        // Button 1: Sign up as Patient (Teal)
+                        // Button 1: Primary Big Sign In Button (Brand Teal)
                         _ActionPillButton(
-                          title: l10n?.signUpAsPatient ?? 'Sign up as Patient',
-                          leadingIcon: Icons.person_outline_rounded,
-                          trailingIcon: Icons.chevron_right_rounded,
+                          title: l10n?.signIn ?? 'Sign In',
+                          leadingIcon: Icons.login_rounded,
                           backgroundColor: AppColors.brandTeal,
                           foregroundColor: Colors.white,
-                          onTap: () => _handleSignUp(context, UserRole.patient),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Button 2: Sign up as Caregiver (Dark Navy)
-                        _ActionPillButton(
-                          title: l10n?.signUpAsCaregiver ?? 'Sign up as Caregiver',
-                          leadingIcon: Icons.people_outline_rounded,
-                          trailingIcon: Icons.chevron_right_rounded,
-                          backgroundColor: AppColors.brandNavy,
-                          foregroundColor: Colors.white,
-                          onTap: () => _handleSignUp(context, UserRole.caregiver),
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Button 3: Sign in (White with Border)
-                        _ActionPillButton(
-                          title: l10n?.signIn ?? 'Sign in',
-                          leadingIcon: Icons.login_rounded,
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.textDark,
-                          borderColor: AppColors.borderSubtle,
                           centerContent: true,
                           onTap: () => _handleSignIn(context),
                         ),
 
                         const SizedBox(height: 20),
+
+                        // Subtle Divider
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Divider(color: AppColors.borderSubtle, thickness: 1),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              child: Text(
+                                isSinhala ? 'හෝ ලියාපදිංචි වන්න' : 'Or register as',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                              child: Divider(color: AppColors.borderSubtle, thickness: 1),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Small Modern Role Buttons: Patient & Caregiver
+                        Row(
+                          children: [
+                            // Patient (Small, Soft Teal / Teal accent)
+                            Expanded(
+                              child: _SmallRoleButton(
+                                title: isSinhala ? 'රෝගියා' : 'Patient',
+                                icon: Icons.person_outline_rounded,
+                                backgroundColor: AppColors.softTealBadge,
+                                foregroundColor: AppColors.brandTeal,
+                                borderColor: AppColors.brandTeal.withValues(alpha: 0.3),
+                                onTap: () => _handleSignUp(context, UserRole.patient),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Caregiver (Small, Card Background / Navy accent)
+                            Expanded(
+                              child: _SmallRoleButton(
+                                title: isSinhala ? 'රැකබලා ගන්නා' : 'Caregiver',
+                                icon: Icons.people_outline_rounded,
+                                backgroundColor: const Color(0xFFE8EEF5),
+                                foregroundColor: AppColors.brandNavy,
+                                borderColor: AppColors.brandNavy.withValues(alpha: 0.3),
+                                onTap: () => _handleSignUp(context, UserRole.caregiver),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ],
@@ -264,7 +302,7 @@ class _ActionPillButton extends StatelessWidget {
                       const SizedBox(width: 10),
                       Text(
                         title,
-                        style: TextStyle(
+                        style: GoogleFonts.plusJakartaSans(
                           color: foregroundColor,
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -280,7 +318,7 @@ class _ActionPillButton extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: TextStyle(
+                          style: GoogleFonts.plusJakartaSans(
                             color: foregroundColor,
                             fontSize: 16.5,
                             fontWeight: FontWeight.w700,
@@ -292,6 +330,68 @@ class _ActionPillButton extends StatelessWidget {
                         Icon(trailingIcon, color: foregroundColor, size: 22),
                     ],
                   ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small modern role selector button for Patient / Caregiver
+class _SmallRoleButton extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Color? borderColor;
+  final VoidCallback onTap;
+
+  const _SmallRoleButton({
+    required this.title,
+    required this.icon,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.borderColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          height: 48,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(24),
+            border: borderColor != null
+                ? Border.all(color: borderColor!, width: 1.2)
+                : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: foregroundColor, size: 20),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    title,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: foregroundColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
