@@ -19,6 +19,7 @@ dependencies:
   # Local / offline storage
   sqflite: ^2.3.3+1
   path_provider: ^2.1.4
+  path: ^1.9.0
   connectivity_plus: ^6.0.5
 
   # Camera / OCR

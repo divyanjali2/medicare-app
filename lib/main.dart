@@ -1,19 +1,33 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
-import 'screens/today_dashboard_screen.dart';
+import 'services/log_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/welcome_screen.dart';
 
 /// Entry point.
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MediCareApp());
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Initialize LogService: sets up the logs folder and global error interception
+    await LogService.initialize();
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    runApp(const MediCareApp());
+  }, (error, stackTrace) {
+    // Intercepts any unhandled asynchronous or zone errors
+    LogService.instance.recordPlatformError(
+      error,
+      stackTrace,
+      reason: 'Uncaught Zone / Asynchronous Exception',
+    );
+  });
 }
 
 class MediCareApp extends StatefulWidget {

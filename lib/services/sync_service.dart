@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'local_db_service.dart';
+import 'log_service.dart';
 
 /// Pushes locally-logged, unsynced data to Firestore whenever connectivity
 /// returns. Local data always wins for that device (last-write-wins by
@@ -36,6 +37,13 @@ class SyncService {
             .set(log.toMap(), SetOptions(merge: true));
         await LocalDbService.instance.markSynced(log.id);
       }
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'SyncService failed while uploading unsynced dose logs',
+        category: 'SYNC_ERROR',
+      );
     } finally {
       _syncing = false;
     }
