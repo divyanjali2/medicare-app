@@ -6,10 +6,13 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'caregiver_screen.dart';
+import 'forgot_password_screen.dart';
 import 'today_dashboard_screen.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key});
+  final String? initialPhone;
+
+  const SignInScreen({super.key, this.initialPhone});
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -21,6 +24,14 @@ class _SignInScreenState extends State<SignInScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPhone != null && widget.initialPhone!.isNotEmpty) {
+      _phoneController.text = widget.initialPhone!;
+    }
+  }
 
   @override
   void dispose() {
@@ -249,7 +260,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l10n?.signInPhoneSubtitle ?? "Enter your phone number and password to continue.",
+                  l10n?.signInPhoneSubtitle ?? 'Enter your phone number and password to continue.',
                   style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.textMuted,
@@ -301,7 +312,37 @@ class _SignInScreenState extends State<SignInScreen> {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+
+                // --- Forgot Password Link ---
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ForgotPasswordScreen(
+                            initialPhone: _phoneController.text.trim(),
+                          ),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.brandTeal,
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                    ),
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.brandTeal,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
 
                 // --- Sign In Button ---
                 SizedBox(

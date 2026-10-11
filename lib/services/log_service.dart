@@ -94,10 +94,11 @@ class LogService {
       return _logDir!;
     }
     await _ensureDirectoryInitialized();
-    return _logDir!;
+    return _logDir ?? Directory('logs');
   }
 
   Future<void> _ensureDirectoryInitialized() async {
+    if (kIsWeb) return;
     if (_initCompleter != null) {
       return _initCompleter!.future;
     }
@@ -248,6 +249,7 @@ class LogService {
 
   /// Internal helper to write content into the log files.
   Future<void> _writeToLogFiles(String content, String dateSuffix) async {
+    if (kIsWeb) return;
     try {
       final dir = await logsDirectory;
       final dailyFile = File('${dir.path}${Platform.pathSeparator}error_$dateSuffix.log');
