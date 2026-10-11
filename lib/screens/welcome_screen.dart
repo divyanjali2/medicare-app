@@ -178,35 +178,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           onTap: () => _handleSignIn(context),
                         ),
 
-                        const SizedBox(height: 24),
-
-                        // Bottom Text Link: Explore the demo
-                        Center(
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const TodayDashboardScreen(),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              child: Text(
-                                l10n?.exploreDemo ?? 'Explore the demo',
-                                style: const TextStyle(
-                                  color: AppColors.brandTeal,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ],
