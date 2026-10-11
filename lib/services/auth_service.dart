@@ -18,7 +18,7 @@ class AuthService {
   Future<UserProfile> signUpPatient({
     required String name,
     required String phoneNumber,
-    String? password,
+    required String password,
     AppLanguage language = AppLanguage.english,
     int? age,
     String? emergencyContactName,
@@ -30,13 +30,10 @@ class AuthService {
     try {
       final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
       final authEmail = _phoneToPlaceholderEmail(sanitizedPhone);
-      final authPassword = (password != null && password.length >= 6)
-          ? password
-          : _generateDeterministicPassword(sanitizedPhone);
 
       final cred = await _auth.createUserWithEmailAndPassword(
         email: authEmail,
-        password: authPassword,
+        password: password,
       );
 
       final profile = UserProfile(
@@ -82,8 +79,8 @@ class AuthService {
   Future<UserProfile> signUpCaregiver({
     required String name,
     required String phoneNumber,
+    required String password,
     String? email,
-    String? password,
     String? patientInviteCode,
     AppLanguage language = AppLanguage.english,
     bool soundEnabled = true,
@@ -95,13 +92,10 @@ class AuthService {
       final authEmail = (email != null && email.trim().contains('@'))
           ? email.trim()
           : _phoneToPlaceholderEmail(sanitizedPhone);
-      final authPassword = (password != null && password.length >= 6)
-          ? password
-          : _generateDeterministicPassword(sanitizedPhone);
 
       final cred = await _auth.createUserWithEmailAndPassword(
         email: authEmail,
-        password: authPassword,
+        password: password,
       );
 
       final profile = UserProfile(
@@ -142,11 +136,11 @@ class AuthService {
     }
   }
 
-  /// Sign in using phone number (and optional password).
+  /// Sign in using phone number and password.
   /// Fetches and returns the user profile from Firestore `users`.
   Future<UserProfile> signIn({
     required String phoneNumber,
-    String? password,
+    required String password,
   }) async {
     try {
       final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
@@ -158,13 +152,10 @@ class AuthService {
       }
 
       final authEmail = _phoneToPlaceholderEmail(sanitizedPhone);
-      final authPassword = (password != null && password.length >= 6)
-          ? password
-          : _generateDeterministicPassword(sanitizedPhone);
 
       final cred = await _auth.signInWithEmailAndPassword(
         email: authEmail,
-        password: authPassword,
+        password: password,
       );
 
       final user = cred.user;
@@ -203,10 +194,5 @@ class AuthService {
   String _phoneToPlaceholderEmail(String sanitizedPhone) {
     final clean = sanitizedPhone.isEmpty ? 'guest' : sanitizedPhone;
     return 'user_$clean@medicare.app';
-  }
-
-  String _generateDeterministicPassword(String sanitizedPhone) {
-    final clean = sanitizedPhone.isEmpty ? '000000' : sanitizedPhone;
-    return 'medicare_${clean.padRight(6, '0')}';
   }
 }

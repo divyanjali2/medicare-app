@@ -18,11 +18,14 @@ class SignInScreen extends StatefulWidget {
 class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -32,10 +35,14 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
     setState(() => _isLoading = true);
 
     try {
-      final profile = await AuthService.instance.signIn(phoneNumber: phone);
+      final profile = await AuthService.instance.signIn(
+        phoneNumber: phone,
+        password: password,
+      );
 
       if (!mounted) return;
 
@@ -71,7 +78,7 @@ class _SignInScreenState extends State<SignInScreen> {
       if (errorStr.contains('user-not-found') ||
           errorStr.contains('invalid-credential') ||
           errorStr.contains('wrong-password')) {
-        message = 'No account found with this phone number. Please check the number or sign up first.';
+        message = 'Invalid phone number or password. Please try again or sign up.';
       } else if (errorStr.contains('network-request-failed')) {
         message = 'Network error. Please check your internet connection.';
       } else if (errorStr.contains('invalid-phone-number')) {
@@ -110,17 +117,21 @@ class _SignInScreenState extends State<SignInScreen> {
     required TextEditingController controller,
     required String placeholder,
     TextInputType keyboardType = TextInputType.text,
+    bool obscureText = false,
+    Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      obscureText: obscureText,
       validator: validator,
       style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         hintText: placeholder,
         hintStyle: const TextStyle(color: AppColors.textMuted),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        suffixIcon: suffixIcon,
         errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 12),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -238,7 +249,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  l10n?.signInPhoneSubtitle ?? "We'll send a secure verification code.",
+                  l10n?.signInPhoneSubtitle ?? "Enter your phone number and password to continue.",
                   style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.textMuted,
@@ -259,6 +270,32 @@ class _SignInScreenState extends State<SignInScreen> {
                     final digitsOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
                     if (digitsOnly.length < 7) {
                       return 'Please enter a valid phone number with at least 7 digits';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // --- Password Field ---
+                _buildFieldLabel('Password'),
+                _buildTextField(
+                  controller: _passwordController,
+                  placeholder: 'Enter your password',
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.textMuted,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    if (value.trim().length < 6) {
+                      return 'Password must be at least 6 characters';
                     }
                     return null;
                   },
@@ -289,14 +326,14 @@ class _SignInScreenState extends State<SignInScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : Row(
+                        : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.send_to_mobile_outlined, size: 20),
-                              const SizedBox(width: 12),
+                              Icon(Icons.login_rounded, size: 22),
+                              SizedBox(width: 12),
                               Text(
-                                l10n?.sendVerificationCode ?? 'Send verification code',
-                                style: const TextStyle(
+                                'Sign In',
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
