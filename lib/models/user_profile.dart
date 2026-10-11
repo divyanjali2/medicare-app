@@ -31,13 +31,25 @@ class UserProfile {
         'linkedCaregiverIds': linkedCaregiverIds,
       };
 
-  factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
-        uid: map['uid'] as String,
-        name: map['name'] as String,
-        role: UserRole.values.byName(map['role'] as String),
-        language: AppLanguage.values.byName(map['language'] as String? ?? 'english'),
-        phoneNumber: map['phoneNumber'] as String?,
-        linkedPatientIds: List<String>.from(map['linkedPatientIds'] ?? []),
-        linkedCaregiverIds: List<String>.from(map['linkedCaregiverIds'] ?? []),
-      );
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    final roleStr = map['role'] as String?;
+    final role = UserRole.values.firstWhere(
+      (r) => r.name == roleStr,
+      orElse: () => UserRole.patient,
+    );
+    final langStr = map['language'] as String?;
+    final language = AppLanguage.values.firstWhere(
+      (l) => l.name == langStr,
+      orElse: () => AppLanguage.english,
+    );
+    return UserProfile(
+      uid: map['uid'] as String? ?? '',
+      name: map['name'] as String? ?? 'User',
+      role: role,
+      language: language,
+      phoneNumber: map['phoneNumber'] as String?,
+      linkedPatientIds: List<String>.from(map['linkedPatientIds'] ?? []),
+      linkedCaregiverIds: List<String>.from(map['linkedCaregiverIds'] ?? []),
+    );
+  }
 }
