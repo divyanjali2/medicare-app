@@ -475,11 +475,11 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.send_to_mobile_outlined, size: 20),
+                              const Icon(Icons.person_add_rounded, size: 20),
                               const SizedBox(width: 12),
-                              Text(
-                                l10n?.sendVerificationCode ?? 'Send verification code',
-                                style: const TextStyle(
+                              const Text(
+                                'Sign Up',
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
