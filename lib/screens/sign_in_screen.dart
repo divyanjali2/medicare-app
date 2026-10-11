@@ -4,7 +4,6 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'today_dashboard_screen.dart';
-import 'welcome_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});

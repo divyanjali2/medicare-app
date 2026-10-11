@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../l10n/app_localizations.dart';
-import 'today_dashboard_screen.dart';
+import 'sign_in_screen.dart';
 
 class PatientSignupScreen extends StatefulWidget {
   const PatientSignupScreen({super.key});
@@ -23,6 +25,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
   int _reminderStyleIndex = 0;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -34,13 +37,80 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
     super.dispose();
   }
 
-  void _handleSignup() {
+  Future<void> _handleSignup() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const TodayDashboardScreen(),
-        ),
-      );
+      final name = _nameController.text.trim();
+      final phone = _phoneController.text.trim();
+
+      if (name.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your full name.')),
+        );
+        return;
+      }
+
+      if (phone.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your phone number.')),
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      try {
+        final currentLocale = Localizations.localeOf(context);
+        final language = currentLocale.languageCode == 'si'
+            ? AppLanguage.sinhala
+            : AppLanguage.english;
+
+        final age = int.tryParse(_ageController.text.trim());
+
+        await AuthService.instance.signUpPatient(
+          name: name,
+          phoneNumber: phone,
+          age: age,
+          emergencyContactName: _emergencyNameController.text.trim(),
+          emergencyContactPhone: _emergencyPhoneController.text.trim(),
+          soundEnabled: _soundEnabled,
+          vibrationEnabled: _vibrationEnabled,
+          reminderStyle: _reminderStyleIndex,
+          language: language,
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.brandTeal,
+            content: Text('Account created successfully! Please sign in.'),
+          ),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const SignInScreen(),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        String message = 'Sign up failed. Please try again.';
+        if (e.toString().contains('email-already-in-use')) {
+          message = 'An account with this phone number already exists. Please sign in.';
+        } else if (e.toString().contains('network-request-failed')) {
+          message = 'Network error. Please check your internet connection.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text(message),
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -356,21 +426,30 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: _handleSignup,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.send_to_mobile_outlined, size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          l10n?.sendVerificationCode ?? 'Send verification code',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    onPressed: _isLoading ? null : _handleSignup,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.send_to_mobile_outlined, size: 20),
+                              const SizedBox(width: 12),
+                              Text(
+                                l10n?.sendVerificationCode ?? 'Send verification code',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
