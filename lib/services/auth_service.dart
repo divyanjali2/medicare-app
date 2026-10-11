@@ -142,6 +142,62 @@ class AuthService {
     }
   }
 
+  /// Sign in using phone number (and optional password).
+  /// Fetches and returns the user profile from Firestore `users`.
+  Future<UserProfile> signIn({
+    required String phoneNumber,
+    String? password,
+  }) async {
+    try {
+      final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      if (sanitizedPhone.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'invalid-phone-number',
+          message: 'Please provide a valid phone number.',
+        );
+      }
+
+      final authEmail = _phoneToPlaceholderEmail(sanitizedPhone);
+      final authPassword = (password != null && password.length >= 6)
+          ? password
+          : _generateDeterministicPassword(sanitizedPhone);
+
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: authEmail,
+        password: authPassword,
+      );
+
+      final user = cred.user;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'User session not found.',
+        );
+      }
+
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists || doc.data() == null) {
+        return UserProfile(
+          uid: user.uid,
+          name: 'User',
+          role: UserRole.patient,
+          phoneNumber: phoneNumber,
+        );
+      }
+
+      return UserProfile.fromMap(doc.data()!);
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'Failed to sign in user in Firebase',
+        category: 'AUTH_ERROR',
+        context: {'phone': phoneNumber},
+      );
+      rethrow;
+    }
+  }
+
   Future<void> signOut() => _auth.signOut();
 
   String _phoneToPlaceholderEmail(String sanitizedPhone) {
