@@ -28,3 +28,6 @@ GoogleService-Info.plist
 
 # OS
 .DS_Store
+
+# Error logs generated at runtime
+logs/*.log

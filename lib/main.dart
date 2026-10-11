@@ -1,21 +1,54 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-import 'screens/today_dashboard_screen.dart';
+import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
+import 'services/log_service.dart';
 import 'theme/app_theme.dart';
+import 'screens/welcome_screen.dart';
 
 /// Entry point.
-///
-/// Firebase.initializeApp(), NotificationService.instance.init(), and
-/// SyncService.instance.startListening() are wired here once the Firebase
-/// project is configured (see docs/decisions.md -> "Backend setup").
-/// Left out of this scaffold so the project runs without a Firebase
-/// project attached yet.
 void main() {
-  runApp(const MediCareApp());
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Initialize LogService: sets up the logs folder and global error interception
+    await LogService.initialize();
+
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    runApp(const MediCareApp());
+  }, (error, stackTrace) {
+    // Intercepts any unhandled asynchronous or zone errors
+    LogService.instance.recordPlatformError(
+      error,
+      stackTrace,
+      reason: 'Uncaught Zone / Asynchronous Exception',
+    );
+  });
 }
 
-class MediCareApp extends StatelessWidget {
+class MediCareApp extends StatefulWidget {
   const MediCareApp({super.key});
+
+  /// Allows any descendant widget to change the app language dynamically.
+  static void setLocale(BuildContext context, Locale newLocale) {
+    final state = context.findAncestorStateOfType<_MediCareAppState>();
+    state?.setLocale(newLocale);
+  }
+
+  @override
+  State<MediCareApp> createState() => _MediCareAppState();
+}
+
+class _MediCareAppState extends State<MediCareApp> {
+  Locale _locale = const Locale('en');
+
+  void setLocale(Locale newLocale) {
+    setState(() => _locale = newLocale);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +56,12 @@ class MediCareApp extends StatelessWidget {
       title: 'MediCare',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      // TODO: swap for an auth-gated root once AuthService is wired to
-      // Firebase — this scaffold opens straight to the patient dashboard.
-      home: const TodayDashboardScreen(),
+      locale: _locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      // TODO: swap for an auth-gated root once AuthService is wired up —
+      // this currently opens straight to the patient dashboard.
+      home: const WelcomeScreen(),
     );
   }
 }

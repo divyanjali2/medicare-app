@@ -2,12 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/user_profile.dart';
+import 'log_service.dart';
 
-/// Thin wrapper around Firebase Auth + the `users` Firestore collection.
-///
-/// Patient sign-up and caregiver sign-up share this service; the only
-/// difference is the UserRole and the linking step (see
-/// docs/decisions.md -> "Account creation").
+/// Service managing Firebase Authentication and the Firestore `users` collection.
 class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
@@ -17,52 +14,199 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  /// Register a new Patient in Firebase Auth and persist profile in Firestore `users`.
   Future<UserProfile> signUpPatient({
     required String name,
     required String phoneNumber,
-    required String password,
+    String? password,
     AppLanguage language = AppLanguage.english,
+    int? age,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    bool soundEnabled = true,
+    bool vibrationEnabled = true,
+    int reminderStyle = 0,
   }) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: _phoneToPlaceholderEmail(phoneNumber),
-      password: password,
-    );
-    final profile = UserProfile(
-      uid: cred.user!.uid,
-      name: name,
-      role: UserRole.patient,
-      language: language,
-      phoneNumber: phoneNumber,
-    );
-    await _firestore.collection('users').doc(profile.uid).set(profile.toMap());
-    return profile;
+    try {
+      final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final authEmail = _phoneToPlaceholderEmail(sanitizedPhone);
+      final authPassword = (password != null && password.length >= 6)
+          ? password
+          : _generateDeterministicPassword(sanitizedPhone);
+
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: authEmail,
+        password: authPassword,
+      );
+
+      final profile = UserProfile(
+        uid: cred.user!.uid,
+        name: name,
+        role: UserRole.patient,
+        language: language,
+        phoneNumber: phoneNumber,
+      );
+
+      final data = profile.toMap();
+      if (age != null) data['age'] = age;
+      if (emergencyContactName != null && emergencyContactName.isNotEmpty) {
+        data['emergencyContactName'] = emergencyContactName;
+      }
+      if (emergencyContactPhone != null && emergencyContactPhone.isNotEmpty) {
+        data['emergencyContactPhone'] = emergencyContactPhone;
+      }
+      data['soundEnabled'] = soundEnabled;
+      data['vibrationEnabled'] = vibrationEnabled;
+      data['reminderStyle'] = reminderStyle;
+      data['createdAt'] = FieldValue.serverTimestamp();
+
+      await _firestore.collection('users').doc(profile.uid).set(data, SetOptions(merge: true));
+
+      // Sign out after registration so user explicitly signs in from SignIn screen
+      await _auth.signOut();
+
+      return profile;
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'Failed to sign up patient in Firebase',
+        category: 'AUTH_ERROR',
+        context: {'name': name, 'phone': phoneNumber},
+      );
+      rethrow;
+    }
   }
 
+  /// Register a new Caregiver in Firebase Auth and persist profile in Firestore `users`.
   Future<UserProfile> signUpCaregiver({
     required String name,
     required String phoneNumber,
-    required String password,
-    required String patientInviteCode,
+    String? email,
+    String? password,
+    String? patientInviteCode,
+    AppLanguage language = AppLanguage.english,
+    bool soundEnabled = true,
+    bool vibrationEnabled = true,
+    int reminderStyle = 0,
   }) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: _phoneToPlaceholderEmail(phoneNumber),
-      password: password,
-    );
+    try {
+      final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final authEmail = (email != null && email.trim().contains('@'))
+          ? email.trim()
+          : _phoneToPlaceholderEmail(sanitizedPhone);
+      final authPassword = (password != null && password.length >= 6)
+          ? password
+          : _generateDeterministicPassword(sanitizedPhone);
 
-    // TODO: resolve patientInviteCode -> patientId via an `invites`
-    // Firestore collection, then write the link both ways.
-    final profile = UserProfile(
-      uid: cred.user!.uid,
-      name: name,
-      role: UserRole.caregiver,
-      phoneNumber: phoneNumber,
-    );
-    await _firestore.collection('users').doc(profile.uid).set(profile.toMap());
-    return profile;
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: authEmail,
+        password: authPassword,
+      );
+
+      final profile = UserProfile(
+        uid: cred.user!.uid,
+        name: name,
+        role: UserRole.caregiver,
+        language: language,
+        phoneNumber: phoneNumber,
+      );
+
+      final data = profile.toMap();
+      if (email != null && email.trim().isNotEmpty) {
+        data['email'] = email.trim();
+      }
+      if (patientInviteCode != null && patientInviteCode.trim().isNotEmpty) {
+        data['patientInviteCode'] = patientInviteCode.trim();
+      }
+      data['soundEnabled'] = soundEnabled;
+      data['vibrationEnabled'] = vibrationEnabled;
+      data['reminderStyle'] = reminderStyle;
+      data['createdAt'] = FieldValue.serverTimestamp();
+
+      await _firestore.collection('users').doc(profile.uid).set(data, SetOptions(merge: true));
+
+      // Sign out after registration so user explicitly signs in from SignIn screen
+      await _auth.signOut();
+
+      return profile;
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'Failed to sign up caregiver in Firebase',
+        category: 'AUTH_ERROR',
+        context: {'name': name, 'phone': phoneNumber},
+      );
+      rethrow;
+    }
+  }
+
+  /// Sign in using phone number (and optional password).
+  /// Fetches and returns the user profile from Firestore `users`.
+  Future<UserProfile> signIn({
+    required String phoneNumber,
+    String? password,
+  }) async {
+    try {
+      final sanitizedPhone = phoneNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      if (sanitizedPhone.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'invalid-phone-number',
+          message: 'Please provide a valid phone number.',
+        );
+      }
+
+      final authEmail = _phoneToPlaceholderEmail(sanitizedPhone);
+      final authPassword = (password != null && password.length >= 6)
+          ? password
+          : _generateDeterministicPassword(sanitizedPhone);
+
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: authEmail,
+        password: authPassword,
+      );
+
+      final user = cred.user;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'User session not found.',
+        );
+      }
+
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (!doc.exists || doc.data() == null) {
+        return UserProfile(
+          uid: user.uid,
+          name: 'User',
+          role: UserRole.patient,
+          phoneNumber: phoneNumber,
+        );
+      }
+
+      return UserProfile.fromMap(doc.data()!);
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'Failed to sign in user in Firebase',
+        category: 'AUTH_ERROR',
+        context: {'phone': phoneNumber},
+      );
+      rethrow;
+    }
   }
 
   Future<void> signOut() => _auth.signOut();
 
-  String _phoneToPlaceholderEmail(String phoneNumber) =>
-      '$phoneNumber@medicare.local';
+  String _phoneToPlaceholderEmail(String sanitizedPhone) {
+    final clean = sanitizedPhone.isEmpty ? 'guest' : sanitizedPhone;
+    return 'user_$clean@medicare.app';
+  }
+
+  String _generateDeterministicPassword(String sanitizedPhone) {
+    final clean = sanitizedPhone.isEmpty ? '000000' : sanitizedPhone;
+    return 'medicare_${clean.padRight(6, '0')}';
+  }
 }

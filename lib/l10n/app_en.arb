@@ -1,5 +1,14 @@
 {
   "@@locale": "en",
+  "appName": "MediCare",
+  "yourMedicines": "Your medicines.",
+  "yourSupport": "Your support.",
+  "welcomeTagline": "Create an account for yourself or someone you care for.",
+  "signUpAsPatient": "Sign up as Patient",
+  "signUpAsCaregiver": "Sign up as Caregiver",
+  "signIn": "Sign in",
+  "exploreDemo": "Explore the demo",
+  "selectLanguage": "Select Language / භාෂාව තෝරන්න",
   "taken": "Taken",
   "skipped": "Skipped",
   "today": "Today",
@@ -8,5 +17,75 @@
   "scanMedicineLabel": "Scan medicine label",
   "enterManually": "Enter manually",
   "currentStreak": "Current streak",
-  "saveMedicine": "Save medicine"
+  "saveMedicine": "Save medicine",
+  "patientAccountTitle": "PATIENT ACCOUNT",
+  "caregiverAccountTitle": "CAREGIVER ACCOUNT",
+  "createAccountTitle": "Create your account",
+  "accountDetailsSubtitle": "A few details help us personalize MediCare.",
+  "fullNameLabel": "Full name",
+  "fullNameHint": "Your full name",
+  "ageLabel": "Age",
+  "ageHint": "Age",
+  "phoneNumberLabel": "Phone number",
+  "phoneNumberHint": "+94 77 123 4567",
+  "emailOptionalLabel": "Email (optional)",
+  "emailOptionalHint": "you@example.com",
+  "addEmergencyContact": "Add emergency contact (optional)",
+  "contactNameLabel": "Contact name",
+  "contactNameHint": "Name",
+  "contactPhoneLabel": "Contact phone",
+  "reminderPreferencesTitle": "Reminder preferences",
+  "soundLabel": "Sound",
+  "vibrationLabel": "Vibration",
+  "reminderStyleLabel": "Reminder style",
+  "gentleReminder": "Gentle reminder",
+  "persistentReminder": "Persistent reminder",
+  "silentReminder": "Silent reminder",
+  "sendVerificationCode": "Send verification code",
+  "backButton": "Back",
+  "caregiverMode": "Caregiver",
+  "goodMorning": "Good morning",
+  "noMedicinesAdded": "No medicines added yet. Tap + to add one.",
+  "streakDaysCount": "{count} days",
+  "@streakDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pillCalendarTitle": "Pill calendar",
+  "pillCalendarSubtitle": "A clear view of your progress.",
+  "detailsPlaceholder": "details go here",
+  "statusLate": "Late",
+  "statusMissed": "Missed",
+  "signInSubtitle": "Sign in to sync your medication schedules and caregiver links.",
+  "signInWithDemo": "Sign in with demo account",
+  "welcomeBackTitle": "WELCOME BACK",
+  "signInPhoneTitle": "Sign in with your phone",
+  "signInPhoneSubtitle": "We'll send a secure verification code.",
+  "patientViewSubtitle": "Patient view",
+  "signOutButton": "Sign out",
+  "testReminderButton": "Test reminder",
+  "goodMorningName": "Good morning, {name}",
+  "@goodMorningName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addMedicineSubtitle": "Point your camera at the medicine label.",
+  "scanMedicineLabelSubtitle": "We'll fill in the details for you",
+  "orText": "or",
+  "addMedicineTip": "Tip: Place the bottle on a flat surface with good lighting.",
+  "backToScan": "Back to scan",
+  "scanComplete": "Scan complete",
+  "checkDetailsTitle": "Check the details",
+  "checkDetailsSubtitle": "Make sure everything matches your label.",
+  "medicineNameLabel": "Medicine name",
+  "dosageLabel": "Dosage",
+  "frequencyLabel": "How often?",
+  "instructionsLabel": "Instructions",
+  "allTakenTitle": "All taken"
 }
