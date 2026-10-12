@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/medicine.dart';
+import '../services/auth_service.dart';
+import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
@@ -21,6 +24,52 @@ class TodayDashboardScreen extends StatefulWidget {
 
 class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMedicines();
+  }
+
+  Future<void> _loadMedicines() async {
+    try {
+      final patientId = AuthService.instance.currentUser?.uid ?? 'p1';
+      final dbMedicines = await LocalDbService.instance.getMedicines(patientId);
+
+      // Also retrieve any medicines from Firebase Firestore
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('medicines')
+            .where('patientId', isEqualTo: patientId)
+            .get();
+        for (final doc in snap.docs) {
+          final med = Medicine.fromMap(doc.data());
+          if (!dbMedicines.any((m) => m.id == med.id)) {
+            dbMedicines.add(med);
+          }
+        }
+      } catch (_) {}
+
+      if (dbMedicines.isNotEmpty && mounted) {
+        setState(() {
+          for (final med in dbMedicines) {
+            if (!_doses.any((d) => d.medicine.id == med.id || d.medicine.name.toLowerCase() == med.name.toLowerCase())) {
+              final scheduledTime = med.scheduledTimes.isNotEmpty
+                  ? med.scheduledTimes.first
+                  : DateTime.now();
+              _doses.add(
+                _TodayDose(
+                  medicine: med,
+                  time: scheduledTime,
+                  status: DoseStatus.pending,
+                ),
+              );
+            }
+          }
+        });
+      }
+    } catch (_) {}
+  }
 
   final List<_TodayDose> _doses = [
     _TodayDose(

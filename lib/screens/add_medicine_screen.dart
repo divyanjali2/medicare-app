@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'dart:ui';
 
 import '../l10n/app_localizations.dart';
@@ -169,12 +168,19 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     
                     // Scan Box
                     GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
+                      onTap: () async {
+                        final navigator = Navigator.of(context);
+                        final result = await navigator.push(
                           MaterialPageRoute(
                             builder: (_) => const AddManuallyScreen(isFromScan: true),
                           ),
                         );
+                        if (result != null && mounted) {
+                          navigator.pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
+                            (r) => false,
+                          );
+                        }
                       },
                       child: CustomPaint(
                         painter: DashedRectPainter(
@@ -251,12 +257,19 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
+                        onPressed: () async {
+                          final navigator = Navigator.of(context);
+                          final result = await navigator.push(
                             MaterialPageRoute(
                               builder: (_) => const AddManuallyScreen(isFromScan: false),
                             ),
                           );
+                          if (result != null && mounted) {
+                            navigator.pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
+                              (r) => false,
+                            );
+                          }
                         },
                         icon: const Icon(Icons.add, size: 20),
                         label: Text(

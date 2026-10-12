@@ -48,4 +48,27 @@ class SyncService {
       _syncing = false;
     }
   }
+
+  Future<void> syncMedicine(dynamic medicine) async {
+    try {
+      final data = medicine.toMap();
+      await _firestore
+          .collection('medicines')
+          .doc(medicine.id as String)
+          .set(data, SetOptions(merge: true));
+      await _firestore
+          .collection('users')
+          .doc(medicine.patientId as String)
+          .collection('medicines')
+          .doc(medicine.id as String)
+          .set(data, SetOptions(merge: true));
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'SyncService failed while uploading medicine to Firestore',
+        category: 'SYNC_ERROR',
+      );
+    }
+  }
 }
