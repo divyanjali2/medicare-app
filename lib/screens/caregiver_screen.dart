@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'add_medicine_screen.dart';
@@ -22,6 +24,136 @@ class CaregiverScreen extends StatefulWidget {
 }
 
 class _CaregiverScreenState extends State<CaregiverScreen> {
+  List<UserProfile> _linkedPatients = [];
+  bool _isLoadingPatients = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLinkedPatients();
+  }
+
+  Future<void> _loadLinkedPatients() async {
+    setState(() => _isLoadingPatients = true);
+    try {
+      final caregiverUid = AuthService.instance.currentUser?.uid ??
+          AuthService.instance.currentProfile?.uid;
+      if (caregiverUid != null && caregiverUid.isNotEmpty) {
+        final patients = await AuthService.instance.getLinkedPatients(caregiverUid);
+        if (mounted) {
+          setState(() {
+            _linkedPatients = patients;
+            _isLoadingPatients = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading linked patients: $e');
+    }
+    if (mounted) {
+      setState(() => _isLoadingPatients = false);
+    }
+  }
+
+  void _openLinkPatientDialog(BuildContext context) {
+    final phoneController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: const [
+                  Icon(Icons.person_add_alt_1, color: AppColors.brandTeal),
+                  SizedBox(width: 10),
+                  Text('Link a Patient', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Enter the registered phone number of the patient you wish to care for:',
+                    style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Patient Phone Number',
+                      hintText: 'e.g. 077 123 4567',
+                      prefixIcon: const Icon(Icons.phone),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final phone = phoneController.text.trim();
+                          if (phone.isEmpty) return;
+                          setDialogState(() => isSubmitting = true);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(ctx);
+                          try {
+                            final caregiverUid = AuthService.instance.currentUser?.uid ??
+                                AuthService.instance.currentProfile?.uid ??
+                                '';
+                            final patient = await AuthService.instance.linkPatientToCaregiver(
+                              caregiverUid: caregiverUid,
+                              patientPhoneOrCode: phone,
+                            );
+                            if (!mounted) return;
+                            navigator.pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Linked with ${patient.name} successfully!'),
+                                backgroundColor: const Color(0xFF2E7D4E),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            _loadLinkedPatients();
+                          } catch (e) {
+                            setDialogState(() => isSubmitting = false);
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString().replaceAll('Exception: ', '')),
+                                backgroundColor: Colors.redAccent,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brandTeal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isSubmitting
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Link Patient'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _openCheckInSheet(BuildContext context, String patientName) {
     showModalBottomSheet(
       context: context,
@@ -329,22 +461,13 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           _HeaderActionPill(
-                            icon: Icons.person_outline,
-                            label: 'Patient',
-                            onTap: () {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (_) => const TodayDashboardScreen(),
-                                ),
-                                (r) => false,
-                              );
-                            },
-                          ),
-                          _HeaderActionPill(
                             icon: Icons.logout,
                             label: l10n?.signOutButton ?? 'Sign out',
-                            onTap: () {
-                              Navigator.of(context).pushAndRemoveUntil(
+                            onTap: () async {
+                              final nav = Navigator.of(context);
+                              await AuthService.instance.signOut();
+                              if (!mounted) return;
+                              nav.pushAndRemoveUntil(
                                 MaterialPageRoute(
                                   builder: (_) => const WelcomeScreen(),
                                 ),
@@ -472,33 +595,94 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
 
                 const SizedBox(height: 28),
 
-                // Section: Linked patients
-                const Text(
-                  'Linked patients',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                    letterSpacing: -0.3,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Linked patients',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _openLinkPatientDialog(context),
+                      icon: const Icon(Icons.person_add_alt_1, size: 18),
+                      label: const Text('Link patient'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.brandTeal,
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
 
-                // Patient 1: Maria Santos
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFE2E4E8),
-                      width: 1.2,
+                if (_isLoadingPatients)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(child: CircularProgressIndicator(color: AppColors.brandTeal)),
+                  )
+                else if (_linkedPatients.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9F9FB),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E4E8)),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.brandTeal.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.people_outline, color: AppColors.brandTeal, size: 28),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No patients linked yet',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Connect with a patient by entering their registered phone number to monitor their medications.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => _openLinkPatientDialog(context),
+                          icon: const Icon(Icons.person_add_alt_1, size: 18),
+                          label: const Text('Link a Patient'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.brandTeal,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ..._linkedPatients.map(
+                    (patient) => Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFE2E4E8),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
                         children: [
                           Container(
                             width: 48,
@@ -516,23 +700,23 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                             ),
                           ),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Maria Santos',
-                                  style: TextStyle(
+                                  patient.name,
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textDark,
                                   ),
                                 ),
-                                SizedBox(height: 2),
+                                const SizedBox(height: 2),
                                 Text(
-                                  '3 medicines today',
-                                  style: TextStyle(
-                                    fontSize: 14,
+                                  patient.phoneNumber ?? 'Patient',
+                                  style: const TextStyle(
+                                    fontSize: 13,
                                     color: Color(0xFF64748B),
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -540,131 +724,32 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                               ],
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFDCF2E1),
+                          Material(
+                            color: const Color(0xFFDCF2E1),
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
                               borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Text(
-                              'On track',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF2E7D4E),
+                              onTap: () => _openCheckInSheet(context, patient.name),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 7,
+                                ),
+                                child: Text(
+                                  'Check in',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF2E7D4E),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: const LinearProgressIndicator(
-                          value: 2 / 3,
-                          minHeight: 8,
-                          backgroundColor: Color(0xFFE5E7EB),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF3D8657),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        '2 of 3 doses taken',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Patient 2: Robert Santos
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFE2E4E8),
-                      width: 1.2,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFCECD0),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.account_circle_outlined,
-                            color: Color(0xFF8B5E28),
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Robert Santos',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              '4 medicines today',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Material(
-                        color: const Color(0xFFFBE5C8),
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _openCheckInSheet(context, 'Robert Santos'),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 7,
-                            ),
-                            child: Text(
-                              'Check in',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF8C581E),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
                 const SizedBox(height: 28),
 

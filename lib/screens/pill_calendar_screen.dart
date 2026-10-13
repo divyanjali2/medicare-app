@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
 import 'today_dashboard_screen.dart';
 import 'add_medicine_screen.dart';
-import 'caregiver_screen.dart';
+import '../services/auth_service.dart';
 import 'patient_medicines_screen.dart';
 import 'welcome_screen.dart';
 
@@ -68,8 +68,6 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
       nextScreen = const AddMedicineScreen();
     } else if (index == 3) {
       nextScreen = const PatientMedicinesScreen();
-    } else if (index == 4) {
-      nextScreen = const CaregiverScreen();
     } else {
       return;
     }
@@ -159,24 +157,11 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-                          (r) => false,
-                        );
-                      },
-                      icon: const Icon(Icons.person_outline, size: 18),
-                      label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
+                      onPressed: () async {
+                        final nav = Navigator.of(context);
+                        await AuthService.instance.signOut();
+                        if (!mounted) return;
+                        nav.pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                           (r) => false,
                         );
@@ -277,11 +262,6 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
               icon: Icon(Icons.medication_outlined),
               activeIcon: Icon(Icons.medication),
               label: 'Meds',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Care',
             ),
           ],
         ),

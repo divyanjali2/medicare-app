@@ -7,8 +7,8 @@ import '../widgets/language_selector.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
+import '../services/auth_service.dart';
 import 'add_manually_screen.dart';
-import 'caregiver_screen.dart';
 import 'patient_medicines_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
@@ -30,8 +30,6 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       nextScreen = const PillCalendarScreen();
     } else if (index == 3) {
       nextScreen = const PatientMedicinesScreen();
-    } else if (index == 4) {
-      nextScreen = const CaregiverScreen();
     } else {
       return;
     }
@@ -109,20 +107,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.person_outline, size: 18),
-                    label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      await AuthService.instance.signOut();
+                      if (!mounted) return;
+                      nav.pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                         (r) => false,
                       );
@@ -364,11 +353,6 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               icon: Icon(Icons.medication_outlined),
               activeIcon: Icon(Icons.medication),
               label: 'Meds',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Care',
             ),
           ],
         ),

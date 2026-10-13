@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
 import '../models/user_profile.dart';
 import 'log_service.dart';
@@ -485,6 +485,125 @@ class AuthService {
   Future<void> signOut() async {
     _currentProfile = null;
     await _auth.signOut();
+  }
+
+  /// Links a patient and a caregiver in a Many-to-Many relationship.
+  ///
+  /// Atomically adds the patient ID to caregiver's `linkedPatientIds` array,
+  /// and the caregiver ID to patient's `linkedCaregiverIds` array in Firestore.
+  Future<UserProfile> linkPatientToCaregiver({
+    required String caregiverUid,
+    required String patientPhoneOrCode,
+  }) async {
+    // 1. Find patient document by phone number or direct UID
+    DocumentSnapshot<Map<String, dynamic>>? patientDoc =
+        await _findUserDocByPhone(patientPhoneOrCode);
+
+    if (patientDoc == null) {
+      final docById = await _firestore.collection('users').doc(patientPhoneOrCode.trim()).get();
+      if (docById.exists && docById.data() != null) {
+        patientDoc = docById;
+      }
+    }
+
+    if (patientDoc == null || !patientDoc.exists) {
+      throw Exception('No account found for "$patientPhoneOrCode". Please check the phone number.');
+    }
+
+    final patientData = patientDoc.data()!;
+    final patientUid = patientDoc.id;
+
+    // 2. Perform atomic bidirectional link in Firestore batch
+    final batch = _firestore.batch();
+
+    // Add patient to caregiver's linkedPatientIds
+    batch.set(
+      _firestore.collection('users').doc(caregiverUid),
+      {
+        'linkedPatientIds': FieldValue.arrayUnion([patientUid]),
+      },
+      SetOptions(merge: true),
+    );
+
+    // Add caregiver to patient's linkedCaregiverIds
+    batch.set(
+      _firestore.collection('users').doc(patientUid),
+      {
+        'linkedCaregiverIds': FieldValue.arrayUnion([caregiverUid]),
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
+
+    return UserProfile.fromMap(patientData);
+  }
+
+  /// Unlinks a patient and a caregiver (removes IDs from both arrays).
+  Future<void> unlinkPatientFromCaregiver({
+    required String caregiverUid,
+    required String patientUid,
+  }) async {
+    final batch = _firestore.batch();
+    batch.update(
+      _firestore.collection('users').doc(caregiverUid),
+      {'linkedPatientIds': FieldValue.arrayRemove([patientUid])},
+    );
+    batch.update(
+      _firestore.collection('users').doc(patientUid),
+      {'linkedCaregiverIds': FieldValue.arrayRemove([caregiverUid])},
+    );
+    await batch.commit();
+  }
+
+  /// Retrieves all linked patient profiles for a caregiver.
+  Future<List<UserProfile>> getLinkedPatients(String caregiverUid) async {
+    try {
+      final caregiverDoc = await _firestore.collection('users').doc(caregiverUid).get();
+      if (!caregiverDoc.exists || caregiverDoc.data() == null) return [];
+
+      final List<dynamic> patientIds = caregiverDoc.data()!['linkedPatientIds'] ?? [];
+      if (patientIds.isEmpty) return [];
+
+      final List<UserProfile> patients = [];
+      for (final pid in patientIds) {
+        try {
+          final pDoc = await _firestore.collection('users').doc(pid.toString()).get();
+          if (pDoc.exists && pDoc.data() != null) {
+            patients.add(UserProfile.fromMap(pDoc.data()!));
+          }
+        } catch (_) {}
+      }
+      return patients;
+    } catch (e) {
+      debugPrint('Error getting linked patients: $e');
+      return [];
+    }
+  }
+
+  /// Retrieves all linked caregiver profiles for a patient.
+  Future<List<UserProfile>> getLinkedCaregivers(String patientUid) async {
+    try {
+      final patientDoc = await _firestore.collection('users').doc(patientUid).get();
+      if (!patientDoc.exists || patientDoc.data() == null) return [];
+
+      final List<dynamic> caregiverIds = patientDoc.data()!['linkedCaregiverIds'] ?? [];
+      if (caregiverIds.isEmpty) return [];
+
+      final List<UserProfile> caregivers = [];
+      for (final cid in caregiverIds) {
+        try {
+          final cDoc = await _firestore.collection('users').doc(cid.toString()).get();
+          if (cDoc.exists && cDoc.data() != null) {
+            caregivers.add(UserProfile.fromMap(cDoc.data()!));
+          }
+        } catch (_) {}
+      }
+      return caregivers;
+    } catch (e) {
+      debugPrint('Error getting linked caregivers: $e');
+      return [];
+    }
   }
 
   String _phoneToPlaceholderEmail(String sanitizedPhone) {

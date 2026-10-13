@@ -8,7 +8,6 @@ import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'add_medicine_screen.dart';
-import 'caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'welcome_screen.dart';
@@ -154,8 +153,6 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
       nextScreen = const PillCalendarScreen();
     } else if (index == 2) {
       nextScreen = const AddMedicineScreen();
-    } else if (index == 4) {
-      nextScreen = const CaregiverScreen();
     } else {
       return;
     }
@@ -245,24 +242,11 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-                          (r) => false,
-                        );
-                      },
-                      icon: const Icon(Icons.person_outline, size: 18),
-                      label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
+                      onPressed: () async {
+                        final nav = Navigator.of(context);
+                        await AuthService.instance.signOut();
+                        if (!mounted) return;
+                        nav.pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const WelcomeScreen()),
                           (r) => false,
                         );
@@ -441,11 +425,6 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                 child: const Icon(Icons.medication, color: AppColors.brandTeal),
               ),
               label: 'Meds',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Care',
             ),
           ],
         ),
