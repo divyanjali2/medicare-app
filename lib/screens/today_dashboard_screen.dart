@@ -9,11 +9,11 @@ import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/profile_menu_button.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
 import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
-import 'welcome_screen.dart';
 
 /// Screen 1 — Today / Home Dashboard (patient view).
 /// Fetches patient medication schedule and adherence metrics directly
@@ -363,49 +363,16 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const LanguagePillSelector(),
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LanguagePillSelector(),
+                      SizedBox(width: 8),
+                      ProfileMenuButton(),
+                    ],
+                  ),
                 ],
               ),
-            ),
-
-            // Action Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final nav = Navigator.of(context);
-                        await AuthService.instance.signOut();
-                        if (!mounted) return;
-                        nav.pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                          (r) => false,
-                        );
-                      },
-                      icon: const Icon(Icons.logout, size: 18),
-                      label: Text(l10n?.signOutButton ?? 'Sign out'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Divider(color: AppColors.borderSubtle),
             ),
 
             // Main Content Area with Pull-to-Refresh

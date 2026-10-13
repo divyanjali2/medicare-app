@@ -6,11 +6,11 @@ import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/profile_menu_button.dart';
 import 'add_medicine_screen.dart';
 import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
-import 'welcome_screen.dart';
 
 /// Screen — Caregiver View Dashboard.
 ///
@@ -66,8 +66,8 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Row(
-                children: const [
+              title: const Row(
+                children: [
                   Icon(Icons.person_add_alt_1, color: AppColors.brandTeal),
                   SizedBox(width: 10),
                   Text('Link a Patient', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -445,38 +445,15 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const LanguagePillSelector(isDark: true),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            LanguagePillSelector(isDark: true),
+                            SizedBox(width: 8),
+                            ProfileMenuButton(isDark: true),
+                          ],
+                        ),
                       ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Action buttons: Patient switch & Sign out
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.end,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          _HeaderActionPill(
-                            icon: Icons.logout,
-                            label: l10n?.signOutButton ?? 'Sign out',
-                            onTap: () async {
-                              final nav = Navigator.of(context);
-                              await AuthService.instance.signOut();
-                              if (!mounted) return;
-                              nav.pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (_) => const WelcomeScreen(),
-                                ),
-                                (r) => false,
-                              );
-                            },
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
@@ -989,49 +966,6 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
               label: 'Care',
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Header action button pill (e.g. Patient, Sign out)
-class _HeaderActionPill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _HeaderActionPill({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: const Color(0xFF0F2E3D)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F2E3D),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

@@ -4,10 +4,9 @@ import 'dart:ui';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/profile_menu_button.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
-import 'welcome_screen.dart';
-import '../services/auth_service.dart';
 import 'add_manually_screen.dart';
 import 'patient_medicines_screen.dart';
 
@@ -95,44 +94,18 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       ),
                     ],
                   ),
-                  const LanguagePillSelector(),
-                ],
-              ),
-            ),
-            
-            // Action Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final nav = Navigator.of(context);
-                      await AuthService.instance.signOut();
-                      if (!mounted) return;
-                      nav.pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                        (r) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.logout, size: 18),
-                    label: Text(l10n?.signOutButton ?? 'Sign out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LanguagePillSelector(),
+                      SizedBox(width: 8),
+                      ProfileMenuButton(),
+                    ],
                   ),
                 ],
               ),
             ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Divider(color: AppColors.borderSubtle),
-            ),
+            const Divider(height: 1, color: AppColors.borderSubtle),
 
             // Main Content
             Expanded(
