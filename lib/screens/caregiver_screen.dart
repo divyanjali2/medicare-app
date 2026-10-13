@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import 'add_medicine_screen.dart';
+import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'welcome_screen.dart';
@@ -828,7 +829,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 3,
+          currentIndex: 4,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.brandTeal,
           unselectedItemColor: AppColors.textMuted,
@@ -838,22 +839,28 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: (index) {
+            if (index == 4) return;
+            Widget nextScreen;
             if (index == 0) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
-                (r) => false,
-              );
+              nextScreen = const TodayDashboardScreen();
             } else if (index == 1) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const PillCalendarScreen()),
-                (r) => false,
-              );
+              nextScreen = const PillCalendarScreen();
             } else if (index == 2) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
-                (r) => false,
-              );
+              nextScreen = const AddMedicineScreen();
+            } else if (index == 3) {
+              nextScreen = const PatientMedicinesScreen();
+            } else {
+              return;
             }
+
+            Navigator.of(context).pushAndRemoveUntil(
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => nextScreen,
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+              ),
+              (r) => false,
+            );
           },
           items: [
             BottomNavigationBarItem(
@@ -869,6 +876,11 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Meds',
             ),
             BottomNavigationBarItem(
               icon: Container(

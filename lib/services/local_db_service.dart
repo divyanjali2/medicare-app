@@ -88,10 +88,28 @@ class LocalDbService {
     );
     return rows.map((row) {
       final map = Map<String, dynamic>.from(row);
-      map['scheduledTimes'] = (map['scheduledTimes'] as String).split('|');
+      final rawTimes = map['scheduledTimes'];
+      if (rawTimes is String) {
+        map['scheduledTimes'] = rawTimes.split('|').where((s) => s.isNotEmpty).toList();
+      } else {
+        map['scheduledTimes'] = <String>[];
+      }
       map['addedViaScan'] = map['addedViaScan'] == 1;
       return Medicine.fromMap(map);
     }).toList();
+  }
+
+  Future<void> deleteMedicine(String medicineId) async {
+    if (kIsWeb) {
+      _webMedicines.remove(medicineId);
+      return;
+    }
+    final db = await database;
+    await db.delete(
+      'medicines',
+      where: 'id = ?',
+      whereArgs: [medicineId],
+    );
   }
 
   // --- Dose logs ---

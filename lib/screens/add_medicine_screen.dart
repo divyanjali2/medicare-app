@@ -9,6 +9,7 @@ import 'pill_calendar_screen.dart';
 import 'welcome_screen.dart';
 import 'add_manually_screen.dart';
 import 'caregiver_screen.dart';
+import 'patient_medicines_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   const AddMedicineScreen({super.key});
@@ -22,23 +23,27 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
-    
+    Widget nextScreen;
     if (index == 0) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
-        (r) => false,
-      );
+      nextScreen = const TodayDashboardScreen();
     } else if (index == 1) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const PillCalendarScreen()),
-        (r) => false,
-      );
+      nextScreen = const PillCalendarScreen();
     } else if (index == 3) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-        (r) => false,
-      );
+      nextScreen = const PatientMedicinesScreen();
+    } else if (index == 4) {
+      nextScreen = const CaregiverScreen();
+    } else {
+      return;
     }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (r) => false,
+    );
   }
 
   @override
@@ -348,12 +353,17 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.brandTeal.withOpacity(0.15),
+                  color: AppColors.brandTeal.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.add, color: AppColors.brandTeal),
               ),
               label: 'Add',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Meds',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.people_outline),

@@ -40,19 +40,65 @@ class Medicine {
         'addedViaScan': addedViaScan,
       };
 
-  factory Medicine.fromMap(Map<String, dynamic> map) => Medicine(
-        id: map['id'] as String,
-        patientId: map['patientId'] as String,
-        name: map['name'] as String,
-        dosage: map['dosage'] as String,
-        frequency: map['frequency'] as String,
-        instructions: map['instructions'] as String,
-        scheduledTimes: (map['scheduledTimes'] as List)
-            .map((s) => DateTime.parse(s as String))
-            .toList(),
-        createdAt: DateTime.parse(map['createdAt'] as String),
-        addedViaScan: map['addedViaScan'] as bool? ?? false,
-      );
+  factory Medicine.fromMap(Map<String, dynamic> map) {
+    final timesList = <DateTime>[];
+    final rawTimes = map['scheduledTimes'];
+    if (rawTimes is List) {
+      for (final t in rawTimes) {
+        if (t is String && t.isNotEmpty) {
+          try {
+            timesList.add(DateTime.parse(t));
+          } catch (_) {}
+        } else if (t is DateTime) {
+          timesList.add(t);
+        } else if (t != null) {
+          try {
+            final dynamic dt = t;
+            if (dt.toDate != null) {
+              timesList.add(dt.toDate() as DateTime);
+            }
+          } catch (_) {}
+        }
+      }
+    } else if (rawTimes is String && rawTimes.isNotEmpty) {
+      for (final part in rawTimes.split('|')) {
+        if (part.isNotEmpty) {
+          try {
+            timesList.add(DateTime.parse(part));
+          } catch (_) {}
+        }
+      }
+    }
+
+    DateTime parsedCreatedAt = DateTime.now();
+    final rawCreatedAt = map['createdAt'];
+    if (rawCreatedAt is String && rawCreatedAt.isNotEmpty) {
+      try {
+        parsedCreatedAt = DateTime.parse(rawCreatedAt);
+      } catch (_) {}
+    } else if (rawCreatedAt is DateTime) {
+      parsedCreatedAt = rawCreatedAt;
+    } else if (rawCreatedAt != null) {
+      try {
+        final dynamic dt = rawCreatedAt;
+        if (dt.toDate != null) {
+          parsedCreatedAt = dt.toDate() as DateTime;
+        }
+      } catch (_) {}
+    }
+
+    return Medicine(
+      id: (map['id'] ?? '').toString(),
+      patientId: (map['patientId'] ?? '').toString(),
+      name: (map['name'] ?? 'Medicine').toString(),
+      dosage: (map['dosage'] ?? '').toString(),
+      frequency: (map['frequency'] ?? 'Daily').toString(),
+      instructions: (map['instructions'] ?? '').toString(),
+      scheduledTimes: timesList,
+      createdAt: parsedCreatedAt,
+      addedViaScan: map['addedViaScan'] == true || map['addedViaScan'] == 1,
+    );
+  }
 }
 
 /// Adherence status for a single scheduled dose on a given day.

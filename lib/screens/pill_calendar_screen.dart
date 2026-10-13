@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import 'today_dashboard_screen.dart';
 import 'add_medicine_screen.dart';
 import 'caregiver_screen.dart';
+import 'patient_medicines_screen.dart';
 import 'welcome_screen.dart';
 
 class PillCalendarScreen extends StatefulWidget {
@@ -60,23 +61,27 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
-    
+    Widget nextScreen;
     if (index == 0) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
-        (r) => false,
-      );
+      nextScreen = const TodayDashboardScreen();
     } else if (index == 2) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
-        (r) => false,
-      );
+      nextScreen = const AddMedicineScreen();
     } else if (index == 3) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-        (r) => false,
-      );
+      nextScreen = const PatientMedicinesScreen();
+    } else if (index == 4) {
+      nextScreen = const CaregiverScreen();
+    } else {
+      return;
     }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (r) => false,
+    );
   }
 
   @override
@@ -267,6 +272,11 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Meds',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.people_outline),

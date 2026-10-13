@@ -37,7 +37,29 @@ class AuthService {
   Map<String, String> get _otpSessions => _activeOtpSessions ??= <String, String>{};
   Map<String, String> get _verificationIds => _activeVerificationIds ??= <String, String>{};
 
+  UserProfile? _currentProfile;
+  UserProfile? get currentProfile => _currentProfile;
+
   User? get currentUser => _auth.currentUser;
+
+  /// Fetches the current user profile from Firestore or returns cached profile.
+  Future<UserProfile?> fetchCurrentUserProfile([String? uid]) async {
+    final targetUid = uid ?? currentUser?.uid;
+    if (targetUid == null) return _currentProfile;
+    if (_currentProfile != null && _currentProfile!.uid == targetUid) {
+      return _currentProfile;
+    }
+    try {
+      final doc = await _firestore.collection('users').doc(targetUid).get();
+      if (doc.exists && doc.data() != null) {
+        _currentProfile = UserProfile.fromMap(doc.data()!);
+        return _currentProfile;
+      }
+    } catch (e) {
+      // Error fetching profile
+    }
+    return _currentProfile;
+  }
 
   /// Register a new Patient in Firebase Auth and persist profile in Firestore `users`.
   Future<UserProfile> signUpPatient({
@@ -418,7 +440,9 @@ class AuthService {
         if (doc != null && doc.data() != null) {
           final data = doc.data()!;
           if (data['password'] == password) {
-            return UserProfile.fromMap(data);
+            final profile = UserProfile.fromMap(data);
+            _currentProfile = profile;
+            return profile;
           }
         }
         rethrow;
@@ -433,15 +457,19 @@ class AuthService {
 
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (!doc.exists || doc.data() == null) {
-        return UserProfile(
+        final profile = UserProfile(
           uid: user.uid,
           name: 'User',
           role: UserRole.patient,
           phoneNumber: phoneNumber,
         );
+        _currentProfile = profile;
+        return profile;
       }
 
-      return UserProfile.fromMap(doc.data()!);
+      final profile = UserProfile.fromMap(doc.data()!);
+      _currentProfile = profile;
+      return profile;
     } catch (e, st) {
       await LogService.instance.logError(
         e,
@@ -454,7 +482,10 @@ class AuthService {
     }
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    _currentProfile = null;
+    await _auth.signOut();
+  }
 
   String _phoneToPlaceholderEmail(String sanitizedPhone) {
     final clean = sanitizedPhone.isEmpty ? 'guest' : sanitizedPhone;

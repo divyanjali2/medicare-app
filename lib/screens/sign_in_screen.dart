@@ -75,7 +75,7 @@ class _SignInScreenState extends State<SignInScreen> {
       } else {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => const TodayDashboardScreen(),
+            builder: (_) => TodayDashboardScreen(initialProfile: profile),
           ),
           (route) => false,
         );
