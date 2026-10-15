@@ -27,8 +27,8 @@ class AuthService {
   AuthService._internal();
   static final AuthService instance = AuthService._internal();
 
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   // Lazy map accessors to avoid undefined field references during runtime / hot reload
   Map<String, String>? _activeOtpSessions;
@@ -40,7 +40,13 @@ class AuthService {
   UserProfile? _currentProfile;
   UserProfile? get currentProfile => _currentProfile;
 
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser {
+    try {
+      return _auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Fetches the current user profile from Firestore or returns cached profile.
   Future<UserProfile?> fetchCurrentUserProfile([String? uid]) async {

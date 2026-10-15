@@ -8,7 +8,6 @@ import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import 'add_medicine_screen.dart';
-import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
 
@@ -788,7 +787,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 3,
+          currentIndex: 2,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.brandTeal,
           unselectedItemColor: AppColors.textMuted,
@@ -798,7 +797,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: (index) {
-            if (index == 3) return;
+            if (index == 2) return;
             final String? primaryPatientId = _linkedPatients.isNotEmpty ? _linkedPatients.first.uid : null;
             final String? primaryPatientName = _linkedPatients.isNotEmpty ? _linkedPatients.first.name : null;
 
@@ -813,23 +812,22 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 patientId: primaryPatientId,
                 patientName: primaryPatientName,
               );
-            } else if (index == 2) {
-              nextScreen = PatientMedicinesScreen(
-                viewingPatientId: primaryPatientId,
-                viewingPatientName: primaryPatientName,
-              );
             } else {
               return;
             }
 
-            Navigator.of(context).pushAndRemoveUntil(
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => nextScreen,
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-              (r) => false,
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => nextScreen,
+                  transitionDuration: const Duration(milliseconds: 150),
+                  transitionsBuilder: (_, animation, __, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
+                (r) => false,
+              );
+            });
           },
           items: [
             BottomNavigationBarItem(
@@ -840,11 +838,6 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Meds',
             ),
             BottomNavigationBarItem(
               icon: Container(

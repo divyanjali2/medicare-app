@@ -66,10 +66,12 @@ class LocalDbService {
       return;
     }
     final db = await database;
+    final map = medicine.toMap();
+    map['scheduledTimes'] = (map['scheduledTimes'] as List).join('|');
+    map['addedViaScan'] = medicine.addedViaScan ? 1 : 0;
     await db.insert(
       'medicines',
-      medicine.toMap()
-        ..update('scheduledTimes', (v) => (v as List).join('|')),
+      map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }

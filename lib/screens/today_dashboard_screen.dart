@@ -13,7 +13,6 @@ import '../widgets/profile_menu_button.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
 import 'caregiver_screen.dart';
-import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
 
 /// Screen 1 — Today / Home Dashboard (patient view).
@@ -683,25 +682,24 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                 patientId: _isCaregiverMode ? _effectivePatientId : null,
                 patientName: _isCaregiverMode ? _userName : null,
               );
-            } else if (index == 3) {
-              nextScreen = PatientMedicinesScreen(
-                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-                viewingPatientName: _isCaregiverMode ? _userName : null,
-              );
-            } else if (index == 4 && _isCaregiverMode) {
+            } else if (index == 3 && _isCaregiverMode) {
               nextScreen = const CaregiverScreen();
             } else {
               return;
             }
 
-            Navigator.of(context).pushAndRemoveUntil(
-              PageRouteBuilder(
-                pageBuilder: (_, __, ___) => nextScreen,
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-              (r) => false,
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                PageRouteBuilder(
+                  pageBuilder: (_, __, ___) => nextScreen,
+                  transitionDuration: const Duration(milliseconds: 150),
+                  transitionsBuilder: (_, animation, __, child) =>
+                      FadeTransition(opacity: animation, child: child),
+                ),
+                (r) => false,
+              );
+            });
           },
           items: [
             BottomNavigationBarItem(
@@ -731,11 +729,6 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Meds',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(

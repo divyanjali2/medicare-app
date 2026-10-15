@@ -12,7 +12,6 @@ import '../services/auth_service.dart';
 import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'add_medicine_screen.dart';
-import 'patient_medicines_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/local_db_service.dart';
@@ -323,25 +322,24 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
         patientId: _isCaregiverMode ? _effectivePatientId : null,
         patientName: _isCaregiverMode ? _patientName : null,
       );
-    } else if (index == 3) {
-      nextScreen = PatientMedicinesScreen(
-        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-        viewingPatientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 4 && _isCaregiverMode) {
+    } else if (index == 3 && _isCaregiverMode) {
       nextScreen = const CaregiverScreen();
     } else {
       return;
     }
 
-    Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => nextScreen,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-      (r) => false,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => nextScreen,
+          transitionDuration: const Duration(milliseconds: 150),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+        (r) => false,
+      );
+    });
   }
 
   @override
@@ -569,11 +567,6 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Meds',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(

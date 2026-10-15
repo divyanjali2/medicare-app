@@ -47,73 +47,60 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
   }
 
   Future<void> _loadAllMedicines() async {
-    final currentUid = AuthService.instance.currentUser?.uid;
-    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
-
-    String patientId = widget.viewingPatientId ?? '';
-    bool caregiverMode = widget.viewingPatientId != null;
-
-    if (profile?.role == UserRole.caregiver) {
-      caregiverMode = true;
-      if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
-        patientId = profile.linkedPatientIds.first;
-      }
-    }
-
-    if (patientId.isEmpty) {
-      patientId = currentUid ?? (profile?.uid ?? 'p1');
-    }
-
-    _effectivePatientId = patientId;
-    _isCaregiverMode = caregiverMode;
-
-    if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
-      _patientName = widget.viewingPatientName!;
-    } else if (caregiverMode && patientId != currentUid && patientId != 'p1') {
-      try {
-        final pDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
-        if (pDoc.exists && pDoc.data() != null && mounted) {
-          setState(() {
-            _patientName = pDoc.data()!['name'] ?? 'Patient';
-          });
-        }
-      } catch (_) {}
-    } else if (profile != null && profile.name.isNotEmpty) {
-      _patientName = profile.name;
-    }
-
     final List<Medicine> combined = [];
-
-    // 1. Load from local database / web memory
     try {
-      final localMeds = await LocalDbService.instance.getMedicines(patientId);
-      combined.addAll(localMeds);
-    } catch (_) {}
+      String? currentUid;
+      UserProfile? profile;
+      try {
+        currentUid = AuthService.instance.currentUser?.uid;
+        profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+      } catch (_) {}
 
-    // 2. Load from Firebase Firestore
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('medicines')
-          .where('patientId', isEqualTo: patientId)
-          .get();
-      for (final doc in snap.docs) {
+      String patientId = widget.viewingPatientId ?? '';
+      bool caregiverMode = widget.viewingPatientId != null;
+
+      if (profile?.role == UserRole.caregiver) {
+        caregiverMode = true;
+        if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+          patientId = profile.linkedPatientIds.first;
+        }
+      }
+
+      if (patientId.isEmpty) {
+        patientId = currentUid ?? (profile?.uid ?? 'p1');
+      }
+
+      _effectivePatientId = patientId;
+      _isCaregiverMode = caregiverMode;
+
+      if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
+        _patientName = widget.viewingPatientName!;
+      } else if (caregiverMode && patientId != currentUid && patientId != 'p1') {
         try {
-          final data = doc.data();
-          data['id'] ??= doc.id;
-          final med = Medicine.fromMap(data);
-          if (!combined.any((m) => m.id == med.id || (m.name.toLowerCase() == med.name.toLowerCase() && m.name.isNotEmpty))) {
-            combined.add(med);
+          final pDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+          if (pDoc.exists && pDoc.data() != null && mounted) {
+            setState(() {
+              _patientName = pDoc.data()!['name'] ?? 'Patient';
+            });
           }
         } catch (_) {}
+      } else if (profile != null && profile.name.isNotEmpty) {
+        _patientName = profile.name;
       }
-      // Also check users/{patientId}/medicines subcollection
+
+      // 1. Load from local database / web memory
       try {
-        final subSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(patientId)
+        final localMeds = await LocalDbService.instance.getMedicines(patientId);
+        combined.addAll(localMeds);
+      } catch (_) {}
+
+      // 2. Load from Firebase Firestore
+      try {
+        final snap = await FirebaseFirestore.instance
             .collection('medicines')
+            .where('patientId', isEqualTo: patientId)
             .get();
-        for (final doc in subSnap.docs) {
+        for (final doc in snap.docs) {
           try {
             final data = doc.data();
             data['id'] ??= doc.id;
@@ -123,14 +110,34 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             }
           } catch (_) {}
         }
+        // Also check users/{patientId}/medicines subcollection
+        try {
+          final subSnap = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(patientId)
+              .collection('medicines')
+              .get();
+          for (final doc in subSnap.docs) {
+            try {
+              final data = doc.data();
+              data['id'] ??= doc.id;
+              final med = Medicine.fromMap(data);
+              if (!combined.any((m) => m.id == med.id || (m.name.toLowerCase() == med.name.toLowerCase() && m.name.isNotEmpty))) {
+                combined.add(med);
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
       } catch (_) {}
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() {
-        _medicines = combined;
-        _isLoading = false;
-      });
+    } catch (_) {
+      // Defensive fallback
+    } finally {
+      if (mounted) {
+        setState(() {
+          _medicines = combined;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -215,14 +222,18 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
       return;
     }
 
-    Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => nextScreen,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-      (r) => false,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => nextScreen,
+          transitionDuration: const Duration(milliseconds: 150),
+          transitionsBuilder: (_, animation, __, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+        (r) => false,
+      );
+    });
   }
 
   @override
@@ -368,6 +379,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                       onRefresh: _loadAllMedicines,
                       color: AppColors.brandTeal,
                       child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         children: [
                           Row(

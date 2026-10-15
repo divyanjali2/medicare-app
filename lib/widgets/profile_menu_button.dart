@@ -14,7 +14,10 @@ class ProfileMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = AuthService.instance.currentProfile;
+    UserProfile? profile;
+    try {
+      profile = AuthService.instance.currentProfile;
+    } catch (_) {}
     final initial = (profile != null && profile.name.trim().isNotEmpty)
         ? profile.name.trim()[0].toUpperCase()
         : 'U';
@@ -51,7 +54,10 @@ class ProfileMenuButton extends StatelessWidget {
   }
 
   void _showMenu(BuildContext context) {
-    final profile = AuthService.instance.currentProfile;
+    UserProfile? profile;
+    try {
+      profile = AuthService.instance.currentProfile;
+    } catch (_) {}
     final l10n = AppLocalizations.of(context);
     final userName = profile?.name ?? 'User';
     final userPhone = profile?.phoneNumber ?? '';
@@ -210,7 +216,10 @@ class ProfileMenuButton extends StatelessWidget {
   }
 
   void _showProfileDetailsDialog(BuildContext context) {
-    final profile = AuthService.instance.currentProfile;
+    UserProfile? profile;
+    try {
+      profile = AuthService.instance.currentProfile;
+    } catch (_) {}
     final userName = profile?.name ?? 'User';
     final userPhone = profile?.phoneNumber ?? 'Not provided';
     final roleName = profile?.role == UserRole.caregiver ? 'Caregiver' : 'Patient';
