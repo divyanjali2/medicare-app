@@ -147,6 +147,22 @@ class LocalDbService {
     return rows.map((r) => DoseLog.fromMap(r)).toList();
   }
 
+  Future<List<DoseLog>> getDoseLogsForRange(DateTime start, DateTime end) async {
+    if (kIsWeb) {
+      return _webDoseLogs.values.where((l) {
+        return (l.scheduledFor.isAfter(start) || l.scheduledFor.isAtSameMomentAs(start)) &&
+            l.scheduledFor.isBefore(end);
+      }).toList();
+    }
+    final db = await database;
+    final rows = await db.query(
+      'dose_logs',
+      where: 'scheduledFor >= ? AND scheduledFor < ?',
+      whereArgs: [start.toIso8601String(), end.toIso8601String()],
+    );
+    return rows.map((r) => DoseLog.fromMap(r)).toList();
+  }
+
   Future<List<DoseLog>> getUnsyncedDoseLogs() async {
     if (kIsWeb) {
       return _webDoseLogs.values.where((l) => !l.synced).toList();

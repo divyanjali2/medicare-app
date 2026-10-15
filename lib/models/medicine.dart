@@ -141,3 +141,28 @@ class DoseLog {
         synced: (map['synced'] as int) == 1,
       );
 }
+
+/// Summarizes daily medication adherence from a list of scheduled [DoseLog] entries.
+///
+/// Rules:
+/// - Empty list returns `null` (no scheduled doses for the day).
+/// - If any dose is [DoseStatus.missed], returns [DoseStatus.missed].
+/// - Else if any dose is [DoseStatus.late], returns [DoseStatus.late].
+/// - Else if all doses are [DoseStatus.taken], returns [DoseStatus.taken].
+/// - Otherwise, returns [DoseStatus.pending].
+DoseStatus? summarizeDay(List<DoseLog> logs) {
+  if (logs.isEmpty) {
+    return null;
+  }
+  if (logs.any((log) => log.status == DoseStatus.missed)) {
+    return DoseStatus.missed;
+  }
+  if (logs.any((log) => log.status == DoseStatus.late)) {
+    return DoseStatus.late;
+  }
+  if (logs.every((log) => log.status == DoseStatus.taken)) {
+    return DoseStatus.taken;
+  }
+  return DoseStatus.pending;
+}
+

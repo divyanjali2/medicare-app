@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/medicine.dart';
 import '../theme/app_theme.dart';
-import '../l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
 
-/// Custom component (built by the student, not from a library) that shows
-/// a month grid color-coded by daily adherence status.
+/// A month-grid calendar widget that displays daily medication adherence status.
+///
+/// Hand-built using core Flutter widgets for elderly patient accessibility.
 ///
 /// Properties:
-/// - [month]            : the month currently displayed
-/// - [statusByDay]       : Map<DateTime, DoseStatus> — one summarized status
-///                         per calendar day (green/amber/red)
-/// - [selectedDay]       : the currently highlighted day
+/// - [month]: The [DateTime] representing the current month being viewed.
+/// - [statusByDay]: A [Map] of normalized [DateTime] (keys normalized to y/m/d with no time)
+///   to [DoseStatus] representing each day's adherence status.
+/// - [selectedDay]: An optional [DateTime] for the currently selected day.
 ///
 /// Events:
-/// - [onDayTap]          : fired when the user taps a day cell
-/// - [onMonthChange]     : fired when the user navigates to prev/next month
+/// - [onDayTap]: Callback invoked with the selected [DateTime] when a day cell is tapped.
+/// - [onMonthChange]: Callback invoked with the previous/next month [DateTime] when chevrons are tapped.
 class PillCalendar extends StatelessWidget {
   final DateTime month;
   final Map<DateTime, DoseStatus> statusByDay;
@@ -37,18 +37,20 @@ class PillCalendar extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstOfMonth = DateTime(month.year, month.month, 1);
     final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
-    final leadingBlanks = firstOfMonth.weekday % 7; // Sun = 0
+    // Sunday first: Sunday is weekday 7 in Dart, 7 % 7 = 0 leading blanks.
+    final leadingBlanks = firstOfMonth.weekday % 7;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E3DD)),
+        border: Border.all(color: const Color(0xFFE5E3DD), width: 1),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildHeader(context),
+          _buildHeader(),
           const SizedBox(height: 12),
           _buildWeekdayLabels(),
           const SizedBox(height: 8),
@@ -62,7 +64,9 @@ class PillCalendar extends StatelessWidget {
             ),
             itemCount: leadingBlanks + daysInMonth,
             itemBuilder: (context, index) {
-              if (index < leadingBlanks) return const SizedBox.shrink();
+              if (index < leadingBlanks) {
+                return const SizedBox.shrink();
+              }
               final day = index - leadingBlanks + 1;
               final date = DateTime(month.year, month.month, day);
               return _DayCell(
@@ -74,8 +78,8 @@ class PillCalendar extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
-          _buildLegend(context),
+          const SizedBox(height: 16),
+          _buildLegend(),
         ],
       ),
     );
@@ -91,31 +95,28 @@ class PillCalendar extends StatelessWidget {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final locale = Localizations.localeOf(context).toString();
+  Widget _buildHeader() {
+    final monthTitle = DateFormat('MMMM yyyy').format(month);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          icon: const Icon(Icons.chevron_left, color: AppColors.textDark),
+          icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+          tooltip: 'Previous month',
           onPressed: () =>
               onMonthChange(DateTime(month.year, month.month - 1)),
         ),
-        Expanded(
-          child: Center(
-            child: Text(
-              DateFormat.yMMMM(locale).format(month),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+        Text(
+          monthTitle,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.chevron_right, color: AppColors.textDark),
+          icon: const Icon(Icons.chevron_right, color: AppColors.textPrimary),
+          tooltip: 'Next month',
           onPressed: () =>
               onMonthChange(DateTime(month.year, month.month + 1)),
         ),
@@ -127,37 +128,39 @@ class PillCalendar extends StatelessWidget {
     const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     return Row(
       children: labels
-          .map((l) => Expanded(
-                child: Center(
-                  child: Text(
-                    l, 
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      color: AppColors.textDark,
-                      fontSize: 14,
-                    ),
+          .map(
+            (label) => Expanded(
+              child: Center(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-              ))
+              ),
+            ),
+          )
           .toList(),
     );
   }
 
-  Widget _buildLegend(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-      child: Wrap(
-        spacing: 16,
-        children: [
-          _LegendDot(color: AppColors.statusTaken, label: AppLocalizations.of(context)?.taken ?? 'Taken'),
-          _LegendDot(color: AppColors.statusLate, label: AppLocalizations.of(context)?.statusLate ?? 'Late'),
-          _LegendDot(color: AppColors.statusMissed, label: AppLocalizations.of(context)?.statusMissed ?? 'Missed'),
-        ],
-      ),
+  Widget _buildLegend() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _LegendDot(color: AppColors.statusTaken, label: 'Taken'),
+        SizedBox(width: 16),
+        _LegendDot(color: AppColors.statusLate, label: 'Late'),
+        SizedBox(width: 16),
+        _LegendDot(color: AppColors.statusMissed, label: 'Missed'),
+      ],
     );
   }
 }
 
+/// A single day in the month grid, showing date number, ring status, and adherence color.
 class _DayCell extends StatelessWidget {
   final DateTime date;
   final DoseStatus? status;
@@ -173,51 +176,71 @@ class _DayCell extends StatelessWidget {
     required this.onTap,
   });
 
-  Color _bgColor() {
+  Color _backgroundColor() {
     switch (status) {
       case DoseStatus.taken:
-        return const Color(0xFFCEEDCD); // Matches mockup green
+        return AppColors.statusTaken.withValues(alpha: 0.25);
       case DoseStatus.late:
-        return const Color(0xFFFEE1B4); // Matches mockup orange
+        return AppColors.statusLate.withValues(alpha: 0.30);
       case DoseStatus.missed:
-        return const Color(0xFFFBDAD6); // Matches mockup red
-      default:
+        return AppColors.statusMissed.withValues(alpha: 0.25);
+      case DoseStatus.pending:
+      case null:
         return Colors.transparent;
     }
   }
 
-  Color _textColor() {
-    switch (status) {
-      case DoseStatus.taken:
-        return const Color(0xFF167B46);
-      case DoseStatus.late:
-        return const Color(0xFF8B4D00);
-      case DoseStatus.missed:
-        return const Color(0xFFB12F24);
-      default:
-        return AppColors.textDark;
+  Border? _border() {
+    // Selected day ring takes priority over the today ring.
+    if (isSelected) {
+      return Border.all(color: AppColors.primaryTeal, width: 3);
     }
+    if (isToday) {
+      return Border.all(color: AppColors.textPrimary, width: 2);
+    }
+    return null;
+  }
+
+  String _semanticsLabel() {
+    final statusLabel = switch (status) {
+      DoseStatus.taken => 'taken',
+      DoseStatus.late => 'late',
+      DoseStatus.missed => 'missed',
+      DoseStatus.pending => 'pending',
+      null => 'no doses',
+    };
+    return '${date.day}, $statusLabel';
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: _bgColor(),
-          shape: BoxShape.circle,
-          border: isSelected
-              ? Border.all(color: AppColors.textDark, width: 1.5)
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '${date.day}',
-          style: TextStyle(
-            color: _textColor(),
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
+    return Semantics(
+      button: true,
+      label: _semanticsLabel(),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: 44,
+              minHeight: 44,
+            ),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _backgroundColor(),
+              border: _border(),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${date.day}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
         ),
       ),
@@ -225,11 +248,15 @@ class _DayCell extends StatelessWidget {
   }
 }
 
+/// Helper widget displaying a colored adherence dot with its descriptive text label.
 class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
 
-  const _LegendDot({required this.color, required this.label});
+  const _LegendDot({
+    required this.color,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,15 +266,18 @@ class _LegendDot extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
         const SizedBox(width: 8),
         Text(
-          label, 
+          label,
           style: const TextStyle(
-            fontSize: 14, 
-            fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
         ),
       ],
