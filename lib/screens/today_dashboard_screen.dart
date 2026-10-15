@@ -13,6 +13,7 @@ import '../widgets/profile_menu_button.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
 import 'caregiver_screen.dart';
+import 'link_caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'patient_medicines_screen.dart';
 
@@ -43,6 +44,7 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
   int _streakDays = 0;
   String _effectivePatientId = 'p1';
   bool _isCaregiverMode = false;
+  String? _linkedCaregiverName;
 
   @override
   void initState() {
@@ -106,6 +108,22 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
       } else if (profile != null && profile.name.isNotEmpty && mounted) {
         setState(() {
           _userName = profile.name;
+        });
+      }
+
+      // Resolve linked caregiver name for patient
+      String? linkedCgName;
+      if (!caregiverMode && profile != null && profile.linkedCaregiverIds.isNotEmpty) {
+        try {
+          final cgs = await AuthService.instance.getLinkedCaregivers(patientId);
+          if (cgs.isNotEmpty) {
+            linkedCgName = cgs.map((c) => c.name).join(', ');
+          }
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() {
+          _linkedCaregiverName = linkedCgName;
         });
       }
 
@@ -489,6 +507,43 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                         ),
                       ),
                   ],
+                ),
+              )
+            else if (_linkedCaregiverName != null && _linkedCaregiverName!.isNotEmpty)
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => LinkCaregiverScreen(
+                      patientId: _effectivePatientId,
+                      patientName: _userName,
+                    ),
+                  ),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F6F4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.brandTeal.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_outline, color: AppColors.brandTeal, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Linked with $_linkedCaregiverName',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.brandNavy,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, size: 18, color: AppColors.brandTeal),
+                    ],
+                  ),
                 ),
               ),
 

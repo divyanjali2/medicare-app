@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
@@ -504,18 +506,230 @@ class AuthService {
     await _auth.signOut();
   }
 
-  /// Links a patient and a caregiver in a Many-to-Many relationship.
-  ///
-  /// Atomically adds the patient ID to caregiver's `linkedPatientIds` array,
-  /// and the caregiver ID to patient's `linkedCaregiverIds` array in Firestore.
+  /// Generates a random 6-character single-use invite code for a patient.
+  /// Valid for 24 hours. Stored under `inviteCodes/{code}`.
+  Future<Map<String, dynamic>> generateInviteCode({
+    required String patientId,
+    required String patientName,
+  }) async {
+    // 1. Check internet connectivity
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity.every((c) => c == ConnectivityResult.none)) {
+        throw Exception('Connect to the internet to link.');
+      }
+    } catch (e) {
+      if (e.toString().contains('Connect to the internet to link')) rethrow;
+    }
+
+    // 2. Generate unambiguous 6-character code (avoiding 0, O, 1, I)
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    final rand = Random.secure();
+    final code = List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
+
+    final now = DateTime.now();
+    final expiresAt = now.add(const Duration(hours: 24));
+
+    final codeData = {
+      'code': code,
+      'patientId': patientId,
+      'patientName': patientName,
+      'createdAt': Timestamp.fromDate(now),
+      'expiresAt': Timestamp.fromDate(expiresAt),
+      'used': false,
+    };
+
+    try {
+      await _firestore
+          .collection('inviteCodes')
+          .doc(code)
+          .set(codeData)
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      throw Exception('Connect to the internet to link.');
+    }
+
+    return {
+      'code': code,
+      'expiresAt': expiresAt,
+    };
+  }
+
+  /// Looks up active (unexpired, unused) invite code generated for this patient.
+  Future<Map<String, dynamic>?> getActiveInviteCode(String patientId) async {
+    try {
+      final now = DateTime.now();
+      final snap = await _firestore
+          .collection('inviteCodes')
+          .where('patientId', isEqualTo: patientId)
+          .where('used', isEqualTo: false)
+          .limit(5)
+          .get()
+          .timeout(const Duration(seconds: 3));
+
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        DateTime? expiresAt;
+        final rawExpires = data['expiresAt'];
+        if (rawExpires is Timestamp) {
+          expiresAt = rawExpires.toDate();
+        } else if (rawExpires is String) {
+          expiresAt = DateTime.tryParse(rawExpires);
+        }
+        if (expiresAt != null && expiresAt.isAfter(now)) {
+          return {
+            'code': doc.id,
+            'expiresAt': expiresAt,
+          };
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Redeems a single-use invite code to link a caregiver with a patient.
+  Future<UserProfile> redeemInviteCode({
+    required String caregiverUid,
+    required String code,
+  }) async {
+    // 1. Check internet connectivity
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity.every((c) => c == ConnectivityResult.none)) {
+        throw Exception('Connect to the internet to link.');
+      }
+    } catch (e) {
+      if (e.toString().contains('Connect to the internet to link')) rethrow;
+    }
+
+    final normalizedCode = code.trim().toUpperCase();
+    if (normalizedCode.length != 6) {
+      throw Exception('Please enter a valid 6-character code (e.g. K7F2QM).');
+    }
+
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await _firestore
+          .collection('inviteCodes')
+          .doc(normalizedCode)
+          .get()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      throw Exception('Connect to the internet to link.');
+    }
+
+    if (!doc.exists || doc.data() == null) {
+      throw Exception('Invite code not found. Please check with the patient.');
+    }
+
+    final data = doc.data()!;
+    final bool used = data['used'] == true;
+    if (used) {
+      throw Exception('This invite code has already been used. Please ask the patient to generate a new code.');
+    }
+
+    DateTime? expiresAt;
+    final rawExpires = data['expiresAt'];
+    if (rawExpires is Timestamp) {
+      expiresAt = rawExpires.toDate();
+    } else if (rawExpires is String) {
+      expiresAt = DateTime.tryParse(rawExpires);
+    }
+
+    if (expiresAt != null && DateTime.now().isAfter(expiresAt)) {
+      throw Exception('This invite code has expired. Please ask the patient to generate a new code.');
+    }
+
+    final patientId = data['patientId'] as String?;
+    if (patientId == null || patientId.isEmpty) {
+      throw Exception('Invalid patient record for this code.');
+    }
+
+    if (patientId == caregiverUid) {
+      throw Exception('You cannot link to your own account as a caregiver.');
+    }
+
+    // 2. Fetch patient profile to verify and return
+    DocumentSnapshot<Map<String, dynamic>> patientDoc;
+    try {
+      patientDoc = await _firestore
+          .collection('users')
+          .doc(patientId)
+          .get()
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      throw Exception('Connect to the internet to link.');
+    }
+
+    if (!patientDoc.exists || patientDoc.data() == null) {
+      throw Exception('Patient account could not be found.');
+    }
+
+    final now = DateTime.now();
+    // 3. Perform atomic batch write:
+    // - Add patientId to caregiver's linkedPatientIds
+    // - Add caregiverUid to patient's linkedCaregiverIds
+    // - Mark code used: true
+    final batch = _firestore.batch();
+
+    batch.set(
+      _firestore.collection('users').doc(caregiverUid),
+      {
+        'linkedPatientIds': FieldValue.arrayUnion([patientId]),
+      },
+      SetOptions(merge: true),
+    );
+
+    batch.set(
+      _firestore.collection('users').doc(patientId),
+      {
+        'linkedCaregiverIds': FieldValue.arrayUnion([caregiverUid]),
+      },
+      SetOptions(merge: true),
+    );
+
+    batch.update(
+      _firestore.collection('inviteCodes').doc(normalizedCode),
+      {
+        'used': true,
+        'usedAt': Timestamp.fromDate(now),
+        'usedByCaregiverId': caregiverUid,
+      },
+    );
+
+    try {
+      await batch.commit().timeout(const Duration(seconds: 5));
+    } catch (_) {
+      throw Exception('Connect to the internet to link.');
+    }
+
+    // Update in-memory cached profile if active
+    if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {
+      final updated = List<String>.from(_currentProfile!.linkedPatientIds);
+      if (!updated.contains(patientId)) updated.add(patientId);
+      _currentProfile = _currentProfile!.copyWith(linkedPatientIds: updated);
+      await LocalDbService.instance.saveUserProfile(_currentProfile!);
+    }
+
+    final patientData = Map<String, dynamic>.from(patientDoc.data()!);
+    patientData['uid'] ??= patientId;
+    return UserProfile.fromMap(patientData);
+  }
+
+  /// Links a patient and a caregiver in a Many-to-Many relationship (fallback by code or phone).
   Future<UserProfile> linkPatientToCaregiver({
     required String caregiverUid,
     required String patientPhoneOrCode,
   }) async {
+    final clean = patientPhoneOrCode.trim();
+    if (clean.length == 6 && !RegExp(r'^\d+$').hasMatch(clean)) {
+      return redeemInviteCode(caregiverUid: caregiverUid, code: clean);
+    }
+
     // 1. Find patient document by phone number or direct UID
     DocumentSnapshot<Map<String, dynamic>>? patientDoc;
     try {
-      patientDoc = await _findUserDocByPhone(patientPhoneOrCode)
+      patientDoc = await _findUserDocByPhone(clean)
           .timeout(const Duration(seconds: 4));
     } catch (_) {}
 
@@ -523,7 +737,7 @@ class AuthService {
       try {
         final docById = await _firestore
             .collection('users')
-            .doc(patientPhoneOrCode.trim())
+            .doc(clean)
             .get()
             .timeout(const Duration(seconds: 4));
         if (docById.exists && docById.data() != null) {
@@ -533,7 +747,7 @@ class AuthService {
     }
 
     if (patientDoc == null || !patientDoc.exists) {
-      throw Exception('Unable to find account for "$patientPhoneOrCode". An internet connection is required.');
+      throw Exception('Unable to find account for "$clean". An internet connection is required.');
     }
 
     final patientData = patientDoc.data()!;
@@ -570,15 +784,8 @@ class AuthService {
     if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {
       final updated = List<String>.from(_currentProfile!.linkedPatientIds);
       if (!updated.contains(patientUid)) updated.add(patientUid);
-      _currentProfile = UserProfile(
-        uid: _currentProfile!.uid,
-        name: _currentProfile!.name,
-        role: _currentProfile!.role,
-        language: _currentProfile!.language,
-        phoneNumber: _currentProfile!.phoneNumber,
-        linkedPatientIds: updated,
-        linkedCaregiverIds: _currentProfile!.linkedCaregiverIds,
-      );
+      _currentProfile = _currentProfile!.copyWith(linkedPatientIds: updated);
+      await LocalDbService.instance.saveUserProfile(_currentProfile!);
     }
 
     final dataWithUid = Map<String, dynamic>.from(patientData);
@@ -602,17 +809,16 @@ class AuthService {
     );
     await batch.commit();
 
-    if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {
-      final updated = List<String>.from(_currentProfile!.linkedPatientIds)..remove(patientUid);
-      _currentProfile = UserProfile(
-        uid: _currentProfile!.uid,
-        name: _currentProfile!.name,
-        role: _currentProfile!.role,
-        language: _currentProfile!.language,
-        phoneNumber: _currentProfile!.phoneNumber,
-        linkedPatientIds: updated,
-        linkedCaregiverIds: _currentProfile!.linkedCaregiverIds,
-      );
+    if (_currentProfile != null) {
+      if (_currentProfile!.uid == caregiverUid) {
+        final updated = List<String>.from(_currentProfile!.linkedPatientIds)..remove(patientUid);
+        _currentProfile = _currentProfile!.copyWith(linkedPatientIds: updated);
+        await LocalDbService.instance.saveUserProfile(_currentProfile!);
+      } else if (_currentProfile!.uid == patientUid) {
+        final updated = List<String>.from(_currentProfile!.linkedCaregiverIds)..remove(caregiverUid);
+        _currentProfile = _currentProfile!.copyWith(linkedCaregiverIds: updated);
+        await LocalDbService.instance.saveUserProfile(_currentProfile!);
+      }
     }
   }
 

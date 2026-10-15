@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
@@ -276,7 +277,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
   }
 
   void _openLinkPatientDialog(BuildContext context) {
-    final phoneController = TextEditingController();
+    final codeController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) {
@@ -287,7 +288,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: const Row(
                 children: [
-                  Icon(Icons.person_add_alt_1, color: AppColors.brandTeal),
+                  Icon(Icons.vpn_key_outlined, color: AppColors.brandTeal),
                   SizedBox(width: 10),
                   Text('Link a Patient', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                 ],
@@ -297,18 +298,36 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Enter the registered phone number of the patient you wish to care for:',
-                    style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                    'Enter the 6-character invite code generated on your patient\'s device:',
+                    style: TextStyle(fontSize: 14, color: AppColors.textMuted, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   TextField(
-                    controller: phoneController,
-                    keyboardType: TextInputType.phone,
+                    controller: codeController,
+                    textCapitalization: TextCapitalization.characters,
+                    maxLength: 6,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 4.0,
+                      color: AppColors.brandNavy,
+                    ),
+                    textAlign: TextAlign.center,
                     decoration: InputDecoration(
-                      labelText: 'Patient Phone Number',
-                      hintText: 'e.g. 077 123 4567',
-                      prefixIcon: const Icon(Icons.phone),
+                      labelText: 'Invite Code',
+                      hintText: 'K7F2QM',
+                      hintStyle: GoogleFonts.jetBrainsMono(
+                        fontSize: 20,
+                        letterSpacing: 4.0,
+                        color: AppColors.textMuted.withValues(alpha: 0.5),
+                      ),
+                      prefixIcon: const Icon(Icons.key, color: AppColors.brandTeal),
+                      counterText: '',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.brandTeal, width: 2),
+                      ),
                     ),
                   ),
                 ],
@@ -322,8 +341,8 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
-                          final phone = phoneController.text.trim();
-                          if (phone.isEmpty) return;
+                          final code = codeController.text.trim().toUpperCase();
+                          if (code.isEmpty) return;
                           setDialogState(() => isSubmitting = true);
                           final messenger = ScaffoldMessenger.of(context);
                           final navigator = Navigator.of(ctx);
@@ -331,9 +350,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                             final caregiverUid = AuthService.instance.currentUser?.uid ??
                                 AuthService.instance.currentProfile?.uid ??
                                 '';
-                            final patient = await AuthService.instance.linkPatientToCaregiver(
+                            final patient = await AuthService.instance.redeemInviteCode(
                               caregiverUid: caregiverUid,
-                              patientPhoneOrCode: phone,
+                              code: code,
                             );
                             if (!mounted) return;
                             navigator.pop();
@@ -347,9 +366,12 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                             _loadLinkedPatients();
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
+                            final errText = e.toString().contains('Connect to the internet')
+                                ? 'Connect to the internet to link.'
+                                : e.toString().replaceAll('Exception: ', '');
                             messenger.showSnackBar(
                               SnackBar(
-                                content: Text(e.toString().replaceAll('Exception: ', '')),
+                                content: Text(errText),
                                 backgroundColor: Colors.redAccent,
                                 behavior: SnackBarBehavior.floating,
                               ),

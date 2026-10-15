@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/welcome_screen.dart';
+import '../screens/link_caregiver_screen.dart';
 import '../l10n/app_localizations.dart';
 
 /// Reusable profile avatar / menu button displayed next to the language selector.
@@ -172,8 +173,45 @@ class ProfileMenuButton extends StatelessWidget {
                     _showProfileDetailsDialog(context);
                   },
                 ),
-
                 const SizedBox(height: 8),
+
+                // Option: Link Caregiver (for patients)
+                if (profile?.role != UserRole.caregiver) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBE5C8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.people_alt_outlined, color: Color(0xFF8C581E)),
+                    ),
+                    title: const Text(
+                      'Link Caregiver',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    subtitle: const Text('Generate invite code for family or doctor'),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LinkCaregiverScreen(
+                            patientId: profile?.uid,
+                            patientName: profile?.name,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
 
                 // Option: Sign out
                 ListTile(
