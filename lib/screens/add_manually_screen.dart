@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/medicine.dart';
+import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
@@ -15,6 +16,8 @@ class AddManuallyScreen extends StatefulWidget {
   final String? initialName;
   final String? initialDosage;
   final String? initialInstructions;
+  final String? patientId;
+  final String? patientName;
 
   const AddManuallyScreen({
     super.key,
@@ -22,6 +25,8 @@ class AddManuallyScreen extends StatefulWidget {
     this.initialName,
     this.initialDosage,
     this.initialInstructions,
+    this.patientId,
+    this.patientName,
   });
 
   @override
@@ -54,6 +59,11 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   String get selectedTimeOfDay => _selectedTimeOfDay ??= 'Morning';
 
   bool _isSaving = false;
+  bool _isCaregiver = false;
+  List<UserProfile> _linkedPatients = [];
+  String? _selectedPatientId;
+  String? _selectedPatientName;
+  bool _isLoadingPatients = false;
 
   static const List<String> _frequencies = [
     'Once daily',
@@ -79,6 +89,47 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     );
     _frequency = 'Once daily';
     _selectedTimeOfDay = 'Morning';
+    _selectedPatientId = widget.patientId;
+    _selectedPatientName = widget.patientName;
+    _initCaregiverPatientSelection();
+  }
+
+  Future<void> _initCaregiverPatientSelection() async {
+    final currentUid = AuthService.instance.currentUser?.uid;
+    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+    final isCaregiver = profile?.role == UserRole.caregiver || widget.patientId != null;
+
+    if (!isCaregiver) return;
+
+    if (mounted) {
+      setState(() {
+        _isCaregiver = true;
+        _isLoadingPatients = true;
+      });
+    }
+
+    List<UserProfile> patients = [];
+    if (currentUid != null) {
+      patients = await AuthService.instance.getLinkedPatients(currentUid);
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingPatients = false;
+        _linkedPatients = patients;
+        if (_selectedPatientId == null || _selectedPatientId!.isEmpty) {
+          if (patients.isNotEmpty) {
+            _selectedPatientId = patients.first.uid;
+            _selectedPatientName = patients.first.name;
+          }
+        } else {
+          final matched = patients.where((p) => p.uid == _selectedPatientId).firstOrNull;
+          if (matched != null) {
+            _selectedPatientName = matched.name;
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -237,7 +288,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
           break;
       }
 
-      final patientId = AuthService.instance.currentUser?.uid ?? 'p1';
+      final patientId = _isCaregiver
+          ? (_selectedPatientId ?? widget.patientId ?? AuthService.instance.currentUser?.uid ?? 'p1')
+          : (widget.patientId ?? AuthService.instance.currentUser?.uid ?? 'p1');
       final medicineId = DateTime.now().millisecondsSinceEpoch.toString();
 
       final medicine = Medicine(
@@ -302,7 +355,11 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
               const Icon(Icons.check_circle_outline, color: Colors.white),
               const SizedBox(width: 10),
               Expanded(
-                child: Text('${medicine.name} added successfully!'),
+                child: Text(
+                  _isCaregiver && _selectedPatientName != null && _selectedPatientName!.isNotEmpty
+                      ? '${medicine.name} added for $_selectedPatientName!'
+                      : '${medicine.name} added successfully!',
+                ),
               ),
             ],
           ),
@@ -372,11 +429,14 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                                 ),
                               ),
                               Text(
-                                l10n?.patientViewSubtitle ?? 'Patient view',
+                                _isCaregiver
+                                    ? 'Caregiver View • Add Medication'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textMuted,
+                                  color: _isCaregiver ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiver ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -571,6 +631,115 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                       ],
 
                       const SizedBox(height: 12),
+
+                      // 0. Patient Selection (Caregiver Mode)
+                      if (_isCaregiver) ...[
+                        _buildFieldLabel('Patient (Select patient for this medicine) *'),
+                        if (_isLoadingPatients)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Loading linked patients...',
+                                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (_linkedPatients.isNotEmpty)
+                          DropdownButtonFormField<String>(
+                            value: _linkedPatients.any((p) => p.uid == _selectedPatientId)
+                                ? _selectedPatientId
+                                : _linkedPatients.first.uid,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.person, color: AppColors.brandNavy),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              filled: true,
+                              fillColor: const Color(0xFFF0F4F8),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: AppColors.brandNavy.withValues(alpha: 0.2)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.brandNavy, width: 2),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: AppColors.statusMissed, width: 1.5),
+                              ),
+                            ),
+                            dropdownColor: Colors.white,
+                            items: _linkedPatients.map((p) {
+                              return DropdownMenuItem<String>(
+                                value: p.uid,
+                                child: Text(
+                                  '${p.name.isNotEmpty ? p.name : "Patient"} (${(p.phoneNumber ?? "").isNotEmpty ? p.phoneNumber : p.uid})',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppColors.textDark,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedPatientId = val;
+                                  _selectedPatientName =
+                                      _linkedPatients.firstWhere((p) => p.uid == val).name;
+                                });
+                              }
+                            },
+                            validator: (val) {
+                              if (_isCaregiver && (val == null || val.isEmpty)) {
+                                return 'Please select which patient this medicine is for';
+                              }
+                              return null;
+                            },
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFDBA74)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline, color: Color(0xFFC2410C), size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _selectedPatientName != null && _selectedPatientName!.isNotEmpty
+                                        ? 'Assigned to: $_selectedPatientName'
+                                        : 'No linked patients found. Please link a patient first.',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF9A3412),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                      ],
 
                       // 1. Medicine Name Field
                       _buildFieldLabel(l10n?.medicineNameLabel ?? 'Medicine name'),

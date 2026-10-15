@@ -12,6 +12,7 @@ import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
+import 'caregiver_screen.dart';
 import 'patient_medicines_screen.dart';
 import 'pill_calendar_screen.dart';
 
@@ -20,8 +21,15 @@ import 'pill_calendar_screen.dart';
 /// from Firebase Firestore and offline local database.
 class TodayDashboardScreen extends StatefulWidget {
   final UserProfile? initialProfile;
+  final String? viewingPatientId;
+  final String? viewingPatientName;
 
-  const TodayDashboardScreen({super.key, this.initialProfile});
+  const TodayDashboardScreen({
+    super.key,
+    this.initialProfile,
+    this.viewingPatientId,
+    this.viewingPatientName,
+  });
 
   @override
   State<TodayDashboardScreen> createState() => _TodayDashboardScreenState();
@@ -33,11 +41,16 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
   bool _isLoading = true;
   String _userName = 'User';
   int _streakDays = 0;
+  String _effectivePatientId = 'p1';
+  bool _isCaregiverMode = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialProfile != null && widget.initialProfile!.name.isNotEmpty) {
+    if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
+      _userName = widget.viewingPatientName!;
+      _isCaregiverMode = true;
+    } else if (widget.initialProfile != null && widget.initialProfile!.name.isNotEmpty) {
       _userName = widget.initialProfile!.name;
     } else if (AuthService.instance.currentProfile != null &&
         AuthService.instance.currentProfile!.name.isNotEmpty) {
@@ -54,15 +67,43 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
     try {
       final currentUid = AuthService.instance.currentUser?.uid;
 
-      // 1. Fetch user profile from backend if name not yet loaded
+      // 1. Fetch user profile from backend
       final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
-      if (profile != null && profile.name.isNotEmpty && mounted) {
+
+      String patientId = widget.viewingPatientId ?? '';
+      bool caregiverMode = widget.viewingPatientId != null;
+
+      if (profile?.role == UserRole.caregiver) {
+        caregiverMode = true;
+        if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+          patientId = profile.linkedPatientIds.first;
+        }
+      }
+
+      if (patientId.isEmpty) {
+        patientId = currentUid ?? (profile?.uid ?? 'p1');
+      }
+
+      _effectivePatientId = patientId;
+      _isCaregiverMode = caregiverMode;
+
+      // Resolve user name
+      if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
+        _userName = widget.viewingPatientName!;
+      } else if (caregiverMode && patientId != currentUid && patientId != 'p1') {
+        try {
+          final pDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+          if (pDoc.exists && pDoc.data() != null && mounted) {
+            setState(() {
+              _userName = pDoc.data()!['name'] ?? 'Patient';
+            });
+          }
+        } catch (_) {}
+      } else if (profile != null && profile.name.isNotEmpty && mounted) {
         setState(() {
           _userName = profile.name;
         });
       }
-
-      final patientId = currentUid ?? (profile?.uid ?? 'p1');
 
       // 2. Fetch medicines for patient from Local DB and Firestore
       final Map<String, Medicine> medicinesMap = {};
@@ -255,9 +296,7 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
   Future<void> _updateStatus(_TodayDose dose, DoseStatus status) async {
     setState(() => dose.status = status);
 
-    final patientId = AuthService.instance.currentUser?.uid ??
-        AuthService.instance.currentProfile?.uid ??
-        'p1';
+    final patientId = _effectivePatientId;
     final now = DateTime.now();
     final logId = dose.doseLogId ??
         'dose_${dose.medicine.id}_${dose.time.year}${dose.time.month.toString().padLeft(2, '0')}${dose.time.day.toString().padLeft(2, '0')}_${dose.time.hour.toString().padLeft(2, '0')}${dose.time.minute.toString().padLeft(2, '0')}';
@@ -320,6 +359,22 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  if (Navigator.of(context).canPop())
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textDark),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: Row(
                       children: [
@@ -327,11 +382,15 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: AppColors.brandTeal,
+                            color: _isCaregiverMode ? AppColors.brandNavy : AppColors.brandTeal,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
-                            child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
+                          child: Center(
+                            child: Icon(
+                              _isCaregiverMode ? Icons.people_outline : Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -349,11 +408,14 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                                 ),
                               ),
                               Text(
-                                l10n?.patientViewSubtitle ?? 'Patient view',
+                                _isCaregiverMode
+                                    ? 'Caregiver View • Patient Schedule'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textMuted,
+                                  color: _isCaregiverMode ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiverMode ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -374,6 +436,46 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                 ],
               ),
             ),
+
+            if (_isCaregiverMode)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brandNavy.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield_outlined, color: AppColors.brandNavy, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Monitoring $_userName\'s schedule',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandNavy,
+                        ),
+                      ),
+                    ),
+                    if (Navigator.of(context).canPop())
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.brandNavy,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 
             // Main Content Area with Pull-to-Refresh
             Expanded(
@@ -572,11 +674,22 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             if (index == _currentIndex) return;
             Widget nextScreen;
             if (index == 1) {
-              nextScreen = const PillCalendarScreen();
+              nextScreen = PillCalendarScreen(
+                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                viewingPatientName: _isCaregiverMode ? _userName : null,
+              );
             } else if (index == 2) {
-              nextScreen = const AddMedicineScreen();
+              nextScreen = AddMedicineScreen(
+                patientId: _isCaregiverMode ? _effectivePatientId : null,
+                patientName: _isCaregiverMode ? _userName : null,
+              );
             } else if (index == 3) {
-              nextScreen = const PatientMedicinesScreen();
+              nextScreen = PatientMedicinesScreen(
+                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                viewingPatientName: _isCaregiverMode ? _userName : null,
+              );
+            } else if (index == 4 && _isCaregiverMode) {
+              nextScreen = const CaregiverScreen();
             } else {
               return;
             }
@@ -624,6 +737,19 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
               activeIcon: Icon(Icons.medication),
               label: 'Meds',
             ),
+            if (_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_outline),
+                activeIcon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCF0F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people, color: Color(0xFF0E7485)),
+                ),
+                label: 'Care',
+              ),
           ],
         ),
       ),

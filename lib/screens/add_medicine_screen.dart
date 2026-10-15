@@ -5,30 +5,107 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
+import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'add_manually_screen.dart';
 import 'patient_medicines_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
-  const AddMedicineScreen({super.key});
+  final String? patientId;
+  final String? patientName;
+
+  const AddMedicineScreen({
+    super.key,
+    this.patientId,
+    this.patientName,
+  });
 
   @override
   State<AddMedicineScreen> createState() => _AddMedicineScreenState();
 }
 
 class _AddMedicineScreenState extends State<AddMedicineScreen> {
-  int _currentIndex = 2; // Add tab
+  final int _currentIndex = 2; // Add tab
+  String _effectivePatientId = 'p1';
+  bool _isCaregiverMode = false;
+  String _patientName = '';
+
+  List<UserProfile> _linkedPatients = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvePatient();
+  }
+
+  Future<void> _resolvePatient() async {
+    final currentUid = AuthService.instance.currentUser?.uid;
+    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+
+    String patientId = widget.patientId ?? '';
+    bool caregiverMode = widget.patientId != null;
+    List<UserProfile> linked = [];
+
+    if (profile?.role == UserRole.caregiver) {
+      caregiverMode = true;
+      if (currentUid != null) {
+        linked = await AuthService.instance.getLinkedPatients(currentUid);
+      }
+      if (patientId.isEmpty && linked.isNotEmpty) {
+        patientId = linked.first.uid;
+      } else if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+        patientId = profile.linkedPatientIds.first;
+      }
+    }
+
+    if (patientId.isEmpty) {
+      patientId = currentUid ?? (profile?.uid ?? 'p1');
+    }
+
+    String patientName = widget.patientName ?? '';
+    if (patientName.isEmpty && linked.isNotEmpty) {
+      final matched = linked.where((p) => p.uid == patientId).firstOrNull;
+      if (matched != null) {
+        patientName = matched.name;
+      }
+    }
+    if (patientName.isEmpty) {
+      patientName = profile?.name ?? '';
+    }
+
+    if (mounted) {
+      setState(() {
+        _effectivePatientId = patientId;
+        _isCaregiverMode = caregiverMode;
+        _linkedPatients = linked;
+        _patientName = patientName;
+      });
+    }
+  }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
     Widget nextScreen;
     if (index == 0) {
-      nextScreen = const TodayDashboardScreen();
+      nextScreen = TodayDashboardScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
     } else if (index == 1) {
-      nextScreen = const PillCalendarScreen();
+      nextScreen = PillCalendarScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
     } else if (index == 3) {
-      nextScreen = const PatientMedicinesScreen();
+      nextScreen = PatientMedicinesScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
+    } else if (index == 4 && _isCaregiverMode) {
+      nextScreen = const CaregiverScreen();
     } else {
       return;
     }
@@ -58,42 +135,72 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandTeal,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
+                  if (Navigator.of(context).canPop())
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textDark),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n?.appName ?? 'MediCare',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
+                    ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _isCaregiverMode ? AppColors.brandNavy : AppColors.brandTeal,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              _isCaregiverMode ? Icons.people_outline : Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
                             ),
                           ),
-                          Text(
-                            l10n?.patientViewSubtitle ?? 'Patient view',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n?.appName ?? 'MediCare',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              Text(
+                                _isCaregiverMode
+                                    ? 'Caregiver View • Add Medication'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _isCaregiverMode ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiverMode ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -105,6 +212,98 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 ],
               ),
             ),
+            if (_isCaregiverMode)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.brandNavy.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_outline, color: AppColors.brandNavy, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Adding medicine for patient:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandNavy,
+                            ),
+                          ),
+                          if (_linkedPatients.length > 1)
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _linkedPatients.any((p) => p.uid == _effectivePatientId)
+                                    ? _effectivePatientId
+                                    : _linkedPatients.first.uid,
+                                isDense: true,
+                                isExpanded: true,
+                                icon: const Icon(Icons.arrow_drop_down, color: AppColors.brandNavy),
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.brandNavy,
+                                ),
+                                items: _linkedPatients.map((p) {
+                                  return DropdownMenuItem<String>(
+                                    value: p.uid,
+                                    child: Text(
+                                      '${p.name.isNotEmpty ? p.name : "Patient"} (${(p.phoneNumber ?? "").isNotEmpty ? p.phoneNumber : p.uid})',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    final selected = _linkedPatients.firstWhere((p) => p.uid == val);
+                                    setState(() {
+                                      _effectivePatientId = selected.uid;
+                                      _patientName = selected.name;
+                                    });
+                                  }
+                                },
+                              ),
+                            )
+                          else
+                            Text(
+                              _patientName.isNotEmpty ? _patientName : 'Patient ($_effectivePatientId)',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.brandNavy,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (Navigator.of(context).canPop())
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
+                          child: Text(
+                            'Exit',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.brandNavy,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const Divider(height: 1, color: AppColors.borderSubtle),
 
             // Main Content
@@ -115,7 +314,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      l10n?.addMedicine ?? 'Add a medicine',
+                      _isCaregiverMode
+                          ? 'Add medicine for $_patientName'
+                          : (l10n?.addMedicine ?? 'Add a medicine'),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -139,12 +340,21 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                         final navigator = Navigator.of(context);
                         final result = await navigator.push(
                           MaterialPageRoute(
-                            builder: (_) => const AddManuallyScreen(isFromScan: true),
+                            builder: (_) => AddManuallyScreen(
+                              isFromScan: true,
+                              patientId: _isCaregiverMode ? _effectivePatientId : null,
+                              patientName: _isCaregiverMode ? _patientName : null,
+                            ),
                           ),
                         );
                         if (result != null && mounted) {
                           navigator.pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => TodayDashboardScreen(
+                                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                                viewingPatientName: _isCaregiverMode ? _patientName : null,
+                              ),
+                            ),
                             (r) => false,
                           );
                         }
@@ -228,12 +438,21 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           final navigator = Navigator.of(context);
                           final result = await navigator.push(
                             MaterialPageRoute(
-                              builder: (_) => const AddManuallyScreen(isFromScan: false),
+                              builder: (_) => AddManuallyScreen(
+                                isFromScan: false,
+                                patientId: _isCaregiverMode ? _effectivePatientId : null,
+                                patientName: _isCaregiverMode ? _patientName : null,
+                              ),
                             ),
                           );
                           if (result != null && mounted) {
                             navigator.pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => TodayDashboardScreen(
+                                  viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                                  viewingPatientName: _isCaregiverMode ? _patientName : null,
+                                ),
+                              ),
                               (r) => false,
                             );
                           }
@@ -327,6 +546,19 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               activeIcon: Icon(Icons.medication),
               label: 'Meds',
             ),
+            if (_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_outline),
+                activeIcon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCF0F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people, color: Color(0xFF0E7485)),
+                ),
+                label: 'Care',
+              ),
           ],
         ),
       ),

@@ -3,17 +3,26 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/medicine.dart';
+import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import 'add_medicine_screen.dart';
+import 'caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
 
 class PatientMedicinesScreen extends StatefulWidget {
-  const PatientMedicinesScreen({super.key});
+  final String? viewingPatientId;
+  final String? viewingPatientName;
+
+  const PatientMedicinesScreen({
+    super.key,
+    this.viewingPatientId,
+    this.viewingPatientName,
+  });
 
   @override
   State<PatientMedicinesScreen> createState() => _PatientMedicinesScreenState();
@@ -23,18 +32,56 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
   final int _currentIndex = 3; // Medicines tab (next to Add)
   bool _isLoading = true;
   List<Medicine> _medicines = [];
+  String _effectivePatientId = 'p1';
+  bool _isCaregiverMode = false;
+  String _patientName = '';
 
   @override
   void initState() {
     super.initState();
+    if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
+      _patientName = widget.viewingPatientName!;
+      _isCaregiverMode = true;
+    }
     _loadAllMedicines();
   }
 
   Future<void> _loadAllMedicines() async {
-    String patientId = 'p1';
-    try {
-      patientId = AuthService.instance.currentUser?.uid ?? 'p1';
-    } catch (_) {}
+    final currentUid = AuthService.instance.currentUser?.uid;
+    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+
+    String patientId = widget.viewingPatientId ?? '';
+    bool caregiverMode = widget.viewingPatientId != null;
+
+    if (profile?.role == UserRole.caregiver) {
+      caregiverMode = true;
+      if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+        patientId = profile.linkedPatientIds.first;
+      }
+    }
+
+    if (patientId.isEmpty) {
+      patientId = currentUid ?? (profile?.uid ?? 'p1');
+    }
+
+    _effectivePatientId = patientId;
+    _isCaregiverMode = caregiverMode;
+
+    if (widget.viewingPatientName != null && widget.viewingPatientName!.isNotEmpty) {
+      _patientName = widget.viewingPatientName!;
+    } else if (caregiverMode && patientId != currentUid && patientId != 'p1') {
+      try {
+        final pDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+        if (pDoc.exists && pDoc.data() != null && mounted) {
+          setState(() {
+            _patientName = pDoc.data()!['name'] ?? 'Patient';
+          });
+        }
+      } catch (_) {}
+    } else if (profile != null && profile.name.isNotEmpty) {
+      _patientName = profile.name;
+    }
+
     final List<Medicine> combined = [];
 
     // 1. Load from local database / web memory
@@ -148,11 +195,22 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
     if (index == _currentIndex) return;
     Widget nextScreen;
     if (index == 0) {
-      nextScreen = const TodayDashboardScreen();
+      nextScreen = TodayDashboardScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
     } else if (index == 1) {
-      nextScreen = const PillCalendarScreen();
+      nextScreen = PillCalendarScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
     } else if (index == 2) {
-      nextScreen = const AddMedicineScreen();
+      nextScreen = AddMedicineScreen(
+        patientId: _isCaregiverMode ? _effectivePatientId : null,
+        patientName: _isCaregiverMode ? _patientName : null,
+      );
+    } else if (index == 4 && _isCaregiverMode) {
+      nextScreen = const CaregiverScreen();
     } else {
       return;
     }
@@ -182,6 +240,22 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  if (Navigator.of(context).canPop())
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textDark),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: Row(
                       children: [
@@ -189,11 +263,15 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: AppColors.brandTeal,
+                            color: _isCaregiverMode ? AppColors.brandNavy : AppColors.brandTeal,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
-                            child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
+                          child: Center(
+                            child: Icon(
+                              _isCaregiverMode ? Icons.people_outline : Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -211,11 +289,14 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                                 ),
                               ),
                               Text(
-                                l10n?.patientViewSubtitle ?? 'Patient view',
+                                _isCaregiverMode
+                                    ? 'Caregiver View • Patient Medications'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textMuted,
+                                  color: _isCaregiverMode ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiverMode ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -236,6 +317,45 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                 ],
               ),
             ),
+            if (_isCaregiverMode)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brandNavy.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield_outlined, color: AppColors.brandNavy, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Monitoring $_patientName\'s medicines',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandNavy,
+                        ),
+                      ),
+                    ),
+                    if (Navigator.of(context).canPop())
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Exit',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.brandNavy,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const Divider(height: 1, color: AppColors.borderSubtle),
 
             // Main Content Area
@@ -259,7 +379,9 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      l10n?.yourMedicines ?? 'Your medicines',
+                                      _isCaregiverMode
+                                          ? '$_patientName\'s medicines'
+                                          : (l10n?.yourMedicines ?? 'Your medicines'),
                                       style: const TextStyle(
                                         fontSize: 26,
                                         fontWeight: FontWeight.w800,
@@ -280,7 +402,12 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                               ElevatedButton.icon(
                                 onPressed: () {
                                   Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => AddMedicineScreen(
+                                        patientId: _isCaregiverMode ? _effectivePatientId : null,
+                                        patientName: _isCaregiverMode ? _patientName : null,
+                                      ),
+                                    ),
                                   ).then((_) => _loadAllMedicines());
                                 },
                                 icon: const Icon(Icons.add, size: 18),
@@ -394,6 +521,19 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
               ),
               label: 'Meds',
             ),
+            if (_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_outline),
+                activeIcon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCF0F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people, color: Color(0xFF0E7485)),
+                ),
+                label: 'Care',
+              ),
           ],
         ),
       ),

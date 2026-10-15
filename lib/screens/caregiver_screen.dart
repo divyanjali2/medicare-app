@@ -154,6 +154,63 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     );
   }
 
+  void _openPatientDashboard(BuildContext context, UserProfile patient) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TodayDashboardScreen(
+          viewingPatientId: patient.uid,
+          viewingPatientName: patient.name,
+        ),
+      ),
+    ).then((_) => _loadLinkedPatients());
+  }
+
+  Future<void> _unlinkPatient(BuildContext context, UserProfile patient) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Unlink Patient', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to unlink ${patient.name}? You will no longer monitor their medications.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('Unlink'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final caregiverUid = AuthService.instance.currentUser?.uid ??
+          AuthService.instance.currentProfile?.uid ??
+          '';
+      await AuthService.instance.unlinkPatientFromCaregiver(
+        caregiverUid: caregiverUid,
+        patientUid: patient.uid,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unlinked from ${patient.name}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadLinkedPatients();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to unlink: $e')),
+        );
+      }
+    }
+  }
+
   void _openCheckInSheet(BuildContext context, String patientName) {
     showModalBottomSheet(
       context: context,
@@ -296,76 +353,6 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     );
   }
 
-  void _showAlertActionSheet(BuildContext context, String title, String time) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: AppColors.textMuted),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Alert marked as resolved.'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.done_all),
-                  label: const Text('Mark as reviewed'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandTeal,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -648,250 +635,160 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   )
                 else
                   ..._linkedPatients.map(
-                    (patient) => Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
+                    (patient) => Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      elevation: 0,
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFE2E4E8),
-                          width: 1.2,
+                        onTap: () => _openPatientDashboard(context, patient),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFE2E4E8),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFDCF0F2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
+                                        style: const TextStyle(
+                                          color: Color(0xFF107485),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          patient.name,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textDark,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          patient.phoneNumber ?? 'Patient',
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    onSelected: (value) {
+                                      if (value == 'view') {
+                                        _openPatientDashboard(context, patient);
+                                      } else if (value == 'unlink') {
+                                        _unlinkPatient(context, patient);
+                                      }
+                                    },
+                                    itemBuilder: (ctx) => [
+                                      const PopupMenuItem(
+                                        value: 'view',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.visibility_outlined, size: 18, color: AppColors.brandTeal),
+                                            SizedBox(width: 8),
+                                            Text('View Schedule'),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'unlink',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.link_off, size: 18, color: Colors.redAccent),
+                                            SizedBox(width: 8),
+                                            Text('Unlink Patient', style: TextStyle(color: Colors.redAccent)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _openPatientDashboard(context, patient),
+                                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                                      label: const Text('View Schedule'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.brandTeal,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: () => _openCheckInSheet(context, patient.name),
+                                    icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                                    label: const Text('Check In'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF2E7D4E),
+                                      side: const BorderSide(color: Color(0xFF2E7D4E)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFDCF0F2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.account_circle_outlined,
-                                color: Color(0xFF107485),
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  patient.name,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  patient.phoneNumber ?? 'Patient',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Material(
-                            color: const Color(0xFFDCF2E1),
-                            borderRadius: BorderRadius.circular(16),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () => _openCheckInSheet(context, patient.name),
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 7,
-                                ),
-                                child: Text(
-                                  'Check in',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF2E7D4E),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
-
-                const SizedBox(height: 28),
-
-                // Section: Recent alerts
-                const Text(
-                  'Recent alerts',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Alert 1: Robert missed Metformin
-                Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => _showAlertActionSheet(
-                      context,
-                      'Robert missed Metformin',
-                      'Today • 8:00 AM',
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFE2E4E8),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFE5E2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.notifications_none_rounded,
-                                color: Color(0xFFD65646),
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Robert missed Metformin',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Today • 8:00 AM',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Alert 2: Maria took Lisinopril late
-                Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => _showAlertActionSheet(
-                      context,
-                      'Maria took Lisinopril late',
-                      'Yesterday • 2:15 PM',
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFFE2E4E8),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFCECD0),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.notifications_none_rounded,
-                                color: Color(0xFFB57C2B),
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Maria took Lisinopril late',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Yesterday • 2:15 PM',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF64748B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
         ],
       ),
 
-      // Bottom Navigation Bar matching design with zero overflow
+      // Bottom Navigation Bar matching design with zero overflow (Calendar, Add, Meds, Care)
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 4,
+          currentIndex: 3,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.brandTeal,
           unselectedItemColor: AppColors.textMuted,
@@ -901,16 +798,26 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: (index) {
-            if (index == 4) return;
+            if (index == 3) return;
+            final String? primaryPatientId = _linkedPatients.isNotEmpty ? _linkedPatients.first.uid : null;
+            final String? primaryPatientName = _linkedPatients.isNotEmpty ? _linkedPatients.first.name : null;
+
             Widget nextScreen;
             if (index == 0) {
-              nextScreen = const TodayDashboardScreen();
+              nextScreen = PillCalendarScreen(
+                viewingPatientId: primaryPatientId,
+                viewingPatientName: primaryPatientName,
+              );
             } else if (index == 1) {
-              nextScreen = const PillCalendarScreen();
+              nextScreen = AddMedicineScreen(
+                patientId: primaryPatientId,
+                patientName: primaryPatientName,
+              );
             } else if (index == 2) {
-              nextScreen = const AddMedicineScreen();
-            } else if (index == 3) {
-              nextScreen = const PatientMedicinesScreen();
+              nextScreen = PatientMedicinesScreen(
+                viewingPatientId: primaryPatientId,
+                viewingPatientName: primaryPatientName,
+              );
             } else {
               return;
             }
@@ -925,11 +832,6 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             );
           },
           items: [
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
-              label: l10n?.today ?? 'Today',
-            ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.calendar_month_outlined),
               activeIcon: const Icon(Icons.calendar_month),

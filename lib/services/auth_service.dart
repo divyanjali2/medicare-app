@@ -536,7 +536,24 @@ class AuthService {
 
     await batch.commit();
 
-    return UserProfile.fromMap(patientData);
+    // Update in-memory cached profile if active
+    if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {
+      final updated = List<String>.from(_currentProfile!.linkedPatientIds);
+      if (!updated.contains(patientUid)) updated.add(patientUid);
+      _currentProfile = UserProfile(
+        uid: _currentProfile!.uid,
+        name: _currentProfile!.name,
+        role: _currentProfile!.role,
+        language: _currentProfile!.language,
+        phoneNumber: _currentProfile!.phoneNumber,
+        linkedPatientIds: updated,
+        linkedCaregiverIds: _currentProfile!.linkedCaregiverIds,
+      );
+    }
+
+    final dataWithUid = Map<String, dynamic>.from(patientData);
+    dataWithUid['uid'] ??= patientUid;
+    return UserProfile.fromMap(dataWithUid);
   }
 
   /// Unlinks a patient and a caregiver (removes IDs from both arrays).
@@ -554,6 +571,19 @@ class AuthService {
       {'linkedCaregiverIds': FieldValue.arrayRemove([caregiverUid])},
     );
     await batch.commit();
+
+    if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {
+      final updated = List<String>.from(_currentProfile!.linkedPatientIds)..remove(patientUid);
+      _currentProfile = UserProfile(
+        uid: _currentProfile!.uid,
+        name: _currentProfile!.name,
+        role: _currentProfile!.role,
+        language: _currentProfile!.language,
+        phoneNumber: _currentProfile!.phoneNumber,
+        linkedPatientIds: updated,
+        linkedCaregiverIds: _currentProfile!.linkedCaregiverIds,
+      );
+    }
   }
 
   /// Retrieves all linked patient profiles for a caregiver.
@@ -570,7 +600,9 @@ class AuthService {
         try {
           final pDoc = await _firestore.collection('users').doc(pid.toString()).get();
           if (pDoc.exists && pDoc.data() != null) {
-            patients.add(UserProfile.fromMap(pDoc.data()!));
+            final data = Map<String, dynamic>.from(pDoc.data()!);
+            data['uid'] ??= pDoc.id;
+            patients.add(UserProfile.fromMap(data));
           }
         } catch (_) {}
       }
@@ -595,7 +627,9 @@ class AuthService {
         try {
           final cDoc = await _firestore.collection('users').doc(cid.toString()).get();
           if (cDoc.exists && cDoc.data() != null) {
-            caregivers.add(UserProfile.fromMap(cDoc.data()!));
+            final data = Map<String, dynamic>.from(cDoc.data()!);
+            data['uid'] ??= cDoc.id;
+            caregivers.add(UserProfile.fromMap(data));
           }
         } catch (_) {}
       }
