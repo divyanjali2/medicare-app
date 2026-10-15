@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
 import '../models/user_profile.dart';
+import 'local_db_service.dart';
 import 'log_service.dart';
 
 /// Result object for OTP send attempts.
@@ -55,6 +56,10 @@ class AuthService {
     if (_currentProfile != null && _currentProfile!.uid == targetUid) {
       return _currentProfile;
     }
+
+    // Try reading local offline cache first so offline load is instant
+    _currentProfile = await LocalDbService.instance.getCachedUserProfile(targetUid);
+
     try {
       final doc = await _firestore
           .collection('users')
@@ -63,6 +68,7 @@ class AuthService {
           .timeout(const Duration(milliseconds: 1500));
       if (doc.exists && doc.data() != null) {
         _currentProfile = UserProfile.fromMap(doc.data()!);
+        await LocalDbService.instance.saveUserProfile(_currentProfile!);
         return _currentProfile;
       }
     } catch (e) {
@@ -494,6 +500,7 @@ class AuthService {
 
   Future<void> signOut() async {
     _currentProfile = null;
+    await LocalDbService.instance.clearCachedUserProfile();
     await _auth.signOut();
   }
 
@@ -506,18 +513,27 @@ class AuthService {
     required String patientPhoneOrCode,
   }) async {
     // 1. Find patient document by phone number or direct UID
-    DocumentSnapshot<Map<String, dynamic>>? patientDoc =
-        await _findUserDocByPhone(patientPhoneOrCode);
+    DocumentSnapshot<Map<String, dynamic>>? patientDoc;
+    try {
+      patientDoc = await _findUserDocByPhone(patientPhoneOrCode)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {}
 
     if (patientDoc == null) {
-      final docById = await _firestore.collection('users').doc(patientPhoneOrCode.trim()).get();
-      if (docById.exists && docById.data() != null) {
-        patientDoc = docById;
-      }
+      try {
+        final docById = await _firestore
+            .collection('users')
+            .doc(patientPhoneOrCode.trim())
+            .get()
+            .timeout(const Duration(seconds: 4));
+        if (docById.exists && docById.data() != null) {
+          patientDoc = docById;
+        }
+      } catch (_) {}
     }
 
     if (patientDoc == null || !patientDoc.exists) {
-      throw Exception('No account found for "$patientPhoneOrCode". Please check the phone number.');
+      throw Exception('Unable to find account for "$patientPhoneOrCode". An internet connection is required.');
     }
 
     final patientData = patientDoc.data()!;
@@ -544,7 +560,11 @@ class AuthService {
       SetOptions(merge: true),
     );
 
-    await batch.commit();
+    try {
+      await batch.commit().timeout(const Duration(seconds: 4));
+    } catch (_) {
+      throw Exception('An internet connection is required to link caregiver and patient accounts.');
+    }
 
     // Update in-memory cached profile if active
     if (_currentProfile != null && _currentProfile!.uid == caregiverUid) {

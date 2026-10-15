@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/medicine.dart';
+import '../models/user_profile.dart';
 
 /// Offline-first local storage.
 ///
@@ -248,5 +249,87 @@ class LocalDbService {
       where: 'id = ?',
       whereArgs: [doseLogId],
     );
+  }
+
+  // --- User Profile Caching ---
+
+  UserProfile? _cachedProfile;
+
+  Future<void> saveUserProfile(UserProfile profile) async {
+    _cachedProfile = profile;
+    if (!_isMemory) {
+      try {
+        final db = await database;
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS user_profile (
+            uid TEXT PRIMARY KEY,
+            name TEXT,
+            phoneNumber TEXT,
+            role TEXT,
+            language TEXT,
+            linkedPatientIds TEXT,
+            linkedCaregiverIds TEXT
+          )
+        ''');
+        await db.insert(
+          'user_profile',
+          {
+            'uid': profile.uid,
+            'name': profile.name,
+            'phoneNumber': profile.phoneNumber,
+            'role': profile.role.name,
+            'language': profile.language.name,
+            'linkedPatientIds': profile.linkedPatientIds.join('|'),
+            'linkedCaregiverIds': profile.linkedCaregiverIds.join('|'),
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } catch (_) {}
+    }
+  }
+
+  Future<UserProfile?> getCachedUserProfile([String? uid]) async {
+    if (_cachedProfile != null && (uid == null || _cachedProfile!.uid == uid)) {
+      return _cachedProfile;
+    }
+    if (!_isMemory) {
+      try {
+        final db = await database;
+        final rows = await db.query(
+          'user_profile',
+          where: uid != null ? 'uid = ?' : null,
+          whereArgs: uid != null ? [uid] : null,
+          limit: 1,
+        );
+        if (rows.isNotEmpty) {
+          final row = rows.first;
+          final role = (row['role'] == 'caregiver') ? UserRole.caregiver : UserRole.patient;
+          final lang = (row['language'] == 'sinhala') ? AppLanguage.sinhala : AppLanguage.english;
+          final pIds = (row['linkedPatientIds'] as String? ?? '').split('|').where((s) => s.isNotEmpty).toList();
+          final cIds = (row['linkedCaregiverIds'] as String? ?? '').split('|').where((s) => s.isNotEmpty).toList();
+          _cachedProfile = UserProfile(
+            uid: row['uid'] as String,
+            name: row['name'] as String? ?? '',
+            phoneNumber: row['phoneNumber'] as String? ?? '',
+            role: role,
+            language: lang,
+            linkedPatientIds: pIds,
+            linkedCaregiverIds: cIds,
+          );
+          return _cachedProfile;
+        }
+      } catch (_) {}
+    }
+    return _cachedProfile;
+  }
+
+  Future<void> clearCachedUserProfile() async {
+    _cachedProfile = null;
+    if (!_isMemory) {
+      try {
+        final db = await database;
+        await db.delete('user_profile');
+      } catch (_) {}
+    }
   }
 }

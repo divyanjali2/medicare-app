@@ -199,11 +199,47 @@ class ProfileMenuButton extends StatelessWidget {
                   onTap: () async {
                     Navigator.of(ctx).pop();
                     final nav = Navigator.of(context);
-                    await AuthService.instance.signOut();
-                    nav.pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                      (r) => false,
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogCtx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        title: const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                            SizedBox(width: 8),
+                            Text('Sign Out?'),
+                          ],
+                        ),
+                        content: const Text(
+                          'Note: You need an active internet connection to sign back in.\n\n'
+                          'If you are currently offline, stay signed in so you can continue viewing and logging your medicines.',
+                          style: TextStyle(fontSize: 14, height: 1.4),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogCtx).pop(false),
+                            child: const Text('Stay Signed In', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(dialogCtx).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Sign Out'),
+                          ),
+                        ],
+                      ),
                     );
+
+                    if (confirm == true) {
+                      await AuthService.instance.signOut();
+                      nav.pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                        (r) => false,
+                      );
+                    }
                   },
                 ),
                 const SizedBox(height: 8),

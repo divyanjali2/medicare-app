@@ -3,11 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/user_profile.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
+import 'caregiver_screen.dart';
 import 'caregiver_signup_screen.dart';
 import 'patient_signup_screen.dart';
 import 'sign_in_screen.dart';
+import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
 /// with instant offline English and Sinhala support.
@@ -19,8 +22,46 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _isCheckingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCachedSession();
+  }
+
+  Future<void> _checkCachedSession() async {
+    final user = AuthService.instance.currentUser;
+    if (user != null) {
+      final profile = await AuthService.instance.fetchCurrentUserProfile(user.uid);
+      if (!mounted) return;
+      if (profile?.role == UserRole.caregiver) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
+        );
+        return;
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => TodayDashboardScreen(initialProfile: profile)),
+        );
+        return;
+      }
+    }
+    if (mounted) {
+      setState(() => _isCheckingSession = false);
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingSession && AuthService.instance.currentUser != null) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.brandTeal),
+        ),
+      );
+    }
+
     final l10n = AppLocalizations.of(context);
     final currentLocale = Localizations.localeOf(context);
     final isSinhala = currentLocale.languageCode == 'si';
