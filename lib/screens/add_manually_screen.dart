@@ -303,6 +303,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
         scheduledTimes: [doseTime],
         createdAt: now,
         addedViaScan: widget.isFromScan,
+        synced: false,
       );
 
       // Persist in local storage
@@ -314,10 +315,11 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
         medicineId: medicineId,
         scheduledFor: doseTime,
         status: DoseStatus.pending,
+        synced: false,
       );
       await LocalDbService.instance.upsertDoseLog(doseLog);
 
-      // Persist to Firebase Firestore
+      // Persist to Firebase Firestore (times out gracefully if offline)
       try {
         final firestore = FirebaseFirestore.instance;
 
@@ -325,7 +327,8 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
         await firestore
             .collection('medicines')
             .doc(medicine.id)
-            .set(medicine.toMap(), SetOptions(merge: true));
+            .set(medicine.toMap(), SetOptions(merge: true))
+            .timeout(const Duration(milliseconds: 1500));
 
         // 2. Under patient profile: users/{patientId}/medicines/{medicineId}
         await firestore
@@ -333,13 +336,17 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
             .doc(patientId)
             .collection('medicines')
             .doc(medicine.id)
-            .set(medicine.toMap(), SetOptions(merge: true));
+            .set(medicine.toMap(), SetOptions(merge: true))
+            .timeout(const Duration(milliseconds: 1500));
+
+        await LocalDbService.instance.markMedicineSynced(medicine.id);
 
         // 3. Save dose log in Firestore
         await firestore
             .collection('dose_logs')
             .doc(doseLog.id)
-            .set(doseLog.toMap(), SetOptions(merge: true));
+            .set(doseLog.toMap(), SetOptions(merge: true))
+            .timeout(const Duration(milliseconds: 1500));
 
         await LocalDbService.instance.markSynced(doseLog.id);
       } catch (firestoreError) {

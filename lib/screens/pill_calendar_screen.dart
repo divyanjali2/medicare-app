@@ -117,7 +117,8 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
         final snap = await FirebaseFirestore.instance
             .collection('medicines')
             .where('patientId', isEqualTo: patientId)
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in snap.docs) {
           final data = doc.data();
           data['id'] ??= doc.id;
@@ -132,7 +133,8 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
             .collection('users')
             .doc(patientId)
             .collection('medicines')
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in subSnap.docs) {
           final data = doc.data();
           data['id'] ??= doc.id;
@@ -166,7 +168,8 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
             .collection('dose_logs')
             .where('scheduledFor', isGreaterThanOrEqualTo: startStr)
             .where('scheduledFor', isLessThan: endStr)
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in remoteLogs.docs) {
           final data = doc.data();
           data['id'] ??= doc.id;

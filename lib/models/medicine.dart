@@ -14,6 +14,7 @@ class Medicine {
   final List<DateTime> scheduledTimes; // times of day, derived from frequency
   final DateTime createdAt;
   final bool addedViaScan;
+  final bool synced;
 
   const Medicine({
     required this.id,
@@ -25,7 +26,34 @@ class Medicine {
     required this.scheduledTimes,
     required this.createdAt,
     this.addedViaScan = false,
+    this.synced = false,
   });
+
+  Medicine copyWith({
+    String? id,
+    String? patientId,
+    String? name,
+    String? dosage,
+    String? frequency,
+    String? instructions,
+    List<DateTime>? scheduledTimes,
+    DateTime? createdAt,
+    bool? addedViaScan,
+    bool? synced,
+  }) {
+    return Medicine(
+      id: id ?? this.id,
+      patientId: patientId ?? this.patientId,
+      name: name ?? this.name,
+      dosage: dosage ?? this.dosage,
+      frequency: frequency ?? this.frequency,
+      instructions: instructions ?? this.instructions,
+      scheduledTimes: scheduledTimes ?? this.scheduledTimes,
+      createdAt: createdAt ?? this.createdAt,
+      addedViaScan: addedViaScan ?? this.addedViaScan,
+      synced: synced ?? this.synced,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -38,6 +66,7 @@ class Medicine {
             scheduledTimes.map((t) => t.toIso8601String()).toList(),
         'createdAt': createdAt.toIso8601String(),
         'addedViaScan': addedViaScan,
+        'synced': synced,
       };
 
   factory Medicine.fromMap(Map<String, dynamic> map) {
@@ -97,6 +126,7 @@ class Medicine {
       scheduledTimes: timesList,
       createdAt: parsedCreatedAt,
       addedViaScan: map['addedViaScan'] == true || map['addedViaScan'] == 1,
+      synced: map['synced'] == true || map['synced'] == 1,
     );
   }
 }

@@ -16,6 +16,11 @@ class LocalDbService {
 
   Database? _db;
 
+  /// Allows unit tests or memory-only environments to route through memory storage.
+  bool useMemoryStorage = false;
+
+  bool get _isMemory => kIsWeb || useMemoryStorage;
+
   // In-memory fallback for web environment where native SQLite is unavailable
   final Map<String, Medicine> _webMedicines = {};
   final Map<String, DoseLog> _webDoseLogs = {};
@@ -29,7 +34,7 @@ class LocalDbService {
     final path = join(await getDatabasesPath(), 'medicare.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE medicines (
@@ -41,7 +46,8 @@ class LocalDbService {
             instructions TEXT,
             scheduledTimes TEXT,
             createdAt TEXT,
-            addedViaScan INTEGER
+            addedViaScan INTEGER,
+            synced INTEGER DEFAULT 0
           )
         ''');
         await db.execute('''
@@ -55,13 +61,20 @@ class LocalDbService {
           )
         ''');
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          try {
+            await db.execute('ALTER TABLE medicines ADD COLUMN synced INTEGER DEFAULT 0');
+          } catch (_) {}
+        }
+      },
     );
   }
 
   // --- Medicines ---
 
   Future<void> upsertMedicine(Medicine medicine) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       _webMedicines[medicine.id] = medicine;
       return;
     }
@@ -69,6 +82,7 @@ class LocalDbService {
     final map = medicine.toMap();
     map['scheduledTimes'] = (map['scheduledTimes'] as List).join('|');
     map['addedViaScan'] = medicine.addedViaScan ? 1 : 0;
+    map['synced'] = medicine.synced ? 1 : 0;
     await db.insert(
       'medicines',
       map,
@@ -77,7 +91,7 @@ class LocalDbService {
   }
 
   Future<List<Medicine>> getMedicines(String patientId) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       return _webMedicines.values
           .where((m) => m.patientId == patientId)
           .toList();
@@ -97,12 +111,50 @@ class LocalDbService {
         map['scheduledTimes'] = <String>[];
       }
       map['addedViaScan'] = map['addedViaScan'] == 1;
+      map['synced'] = map['synced'] == 1;
       return Medicine.fromMap(map);
     }).toList();
   }
 
+  Future<List<Medicine>> getUnsyncedMedicines() async {
+    if (_isMemory) {
+      return _webMedicines.values.where((m) => !m.synced).toList();
+    }
+    final db = await database;
+    final rows = await db.query('medicines', where: 'synced = 0');
+    return rows.map((row) {
+      final map = Map<String, dynamic>.from(row);
+      final rawTimes = map['scheduledTimes'];
+      if (rawTimes is String) {
+        map['scheduledTimes'] = rawTimes.split('|').where((s) => s.isNotEmpty).toList();
+      } else {
+        map['scheduledTimes'] = <String>[];
+      }
+      map['addedViaScan'] = map['addedViaScan'] == 1;
+      map['synced'] = map['synced'] == 1;
+      return Medicine.fromMap(map);
+    }).toList();
+  }
+
+  Future<void> markMedicineSynced(String medicineId) async {
+    if (_isMemory) {
+      final item = _webMedicines[medicineId];
+      if (item != null) {
+        _webMedicines[medicineId] = item.copyWith(synced: true);
+      }
+      return;
+    }
+    final db = await database;
+    await db.update(
+      'medicines',
+      {'synced': 1},
+      where: 'id = ?',
+      whereArgs: [medicineId],
+    );
+  }
+
   Future<void> deleteMedicine(String medicineId) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       _webMedicines.remove(medicineId);
       return;
     }
@@ -117,7 +169,7 @@ class LocalDbService {
   // --- Dose logs ---
 
   Future<void> upsertDoseLog(DoseLog log) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       _webDoseLogs[log.id] = log;
       return;
     }
@@ -130,7 +182,7 @@ class LocalDbService {
   }
 
   Future<List<DoseLog>> getDoseLogsForDay(DateTime day) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       final start = DateTime(day.year, day.month, day.day);
       final end = start.add(const Duration(days: 1));
       return _webDoseLogs.values.where((l) {
@@ -150,7 +202,7 @@ class LocalDbService {
   }
 
   Future<List<DoseLog>> getDoseLogsForRange(DateTime start, DateTime end) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       return _webDoseLogs.values.where((l) {
         return (l.scheduledFor.isAfter(start) || l.scheduledFor.isAtSameMomentAs(start)) &&
             l.scheduledFor.isBefore(end);
@@ -166,7 +218,7 @@ class LocalDbService {
   }
 
   Future<List<DoseLog>> getUnsyncedDoseLogs() async {
-    if (kIsWeb) {
+    if (_isMemory) {
       return _webDoseLogs.values.where((l) => !l.synced).toList();
     }
     final db = await database;
@@ -175,7 +227,7 @@ class LocalDbService {
   }
 
   Future<void> markSynced(String doseLogId) async {
-    if (kIsWeb) {
+    if (_isMemory) {
       final item = _webDoseLogs[doseLogId];
       if (item != null) {
         _webDoseLogs[doseLogId] = DoseLog(

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'services/log_service.dart';
+import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/welcome_screen.dart';
 
@@ -19,6 +20,11 @@ void main() {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // Initialize offline sync listener
+    SyncService.instance.startListening();
+    SyncService.instance.syncNow();
+
     runApp(const MediCareApp());
   }, (error, stackTrace) {
     // Intercepts any unhandled asynchronous or zone errors

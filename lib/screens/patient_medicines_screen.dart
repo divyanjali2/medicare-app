@@ -100,7 +100,8 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
         final snap = await FirebaseFirestore.instance
             .collection('medicines')
             .where('patientId', isEqualTo: patientId)
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in snap.docs) {
           try {
             final data = doc.data();
@@ -119,7 +120,8 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             .collection('users')
             .doc(patientId)
             .collection('medicines')
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in subSnap.docs) {
           try {
             final data = doc.data();
@@ -171,13 +173,18 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
     try {
       await LocalDbService.instance.deleteMedicine(med.id);
       try {
-        await FirebaseFirestore.instance.collection('medicines').doc(med.id).delete();
+        await FirebaseFirestore.instance
+            .collection('medicines')
+            .doc(med.id)
+            .delete()
+            .timeout(const Duration(milliseconds: 1500));
         await FirebaseFirestore.instance
             .collection('users')
             .doc(med.patientId)
             .collection('medicines')
             .doc(med.id)
-            .delete();
+            .delete()
+            .timeout(const Duration(milliseconds: 1500));
       } catch (_) {}
 
       setState(() {

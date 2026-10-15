@@ -92,7 +92,11 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
         _userName = widget.viewingPatientName!;
       } else if (caregiverMode && patientId != currentUid && patientId != 'p1') {
         try {
-          final pDoc = await FirebaseFirestore.instance.collection('users').doc(patientId).get();
+          final pDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(patientId)
+              .get()
+              .timeout(const Duration(milliseconds: 1500));
           if (pDoc.exists && pDoc.data() != null && mounted) {
             setState(() {
               _userName = pDoc.data()!['name'] ?? 'Patient';
@@ -123,7 +127,8 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
         final snap = await FirebaseFirestore.instance
             .collection('medicines')
             .where('patientId', isEqualTo: patientId)
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in snap.docs) {
           final data = doc.data();
           data['id'] ??= doc.id;
@@ -142,7 +147,8 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             .collection('users')
             .doc(patientId)
             .collection('medicines')
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in subSnap.docs) {
           final data = doc.data();
           data['id'] ??= doc.id;
@@ -180,7 +186,8 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
             .collection('dose_logs')
             .where('scheduledFor', isGreaterThanOrEqualTo: startStr)
             .where('scheduledFor', isLessThan: endStr)
-            .get();
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         for (final doc in logsSnap.docs) {
           try {
             final data = doc.data();
@@ -319,7 +326,8 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
       await FirebaseFirestore.instance
           .collection('dose_logs')
           .doc(log.id)
-          .set(log.toMap(), SetOptions(merge: true));
+          .set(log.toMap(), SetOptions(merge: true))
+          .timeout(const Duration(milliseconds: 1500));
       await LocalDbService.instance.markSynced(log.id);
     } catch (e) {
       debugPrint('Firestore dose log sync offline: $e');
@@ -335,7 +343,8 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(patientId)
-          .set({'streakDays': newStreak}, SetOptions(merge: true));
+          .set({'streakDays': newStreak}, SetOptions(merge: true))
+          .timeout(const Duration(milliseconds: 1500));
     } catch (_) {}
   }
 

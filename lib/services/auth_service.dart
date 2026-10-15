@@ -56,13 +56,17 @@ class AuthService {
       return _currentProfile;
     }
     try {
-      final doc = await _firestore.collection('users').doc(targetUid).get();
+      final doc = await _firestore
+          .collection('users')
+          .doc(targetUid)
+          .get()
+          .timeout(const Duration(milliseconds: 1500));
       if (doc.exists && doc.data() != null) {
         _currentProfile = UserProfile.fromMap(doc.data()!);
         return _currentProfile;
       }
     } catch (e) {
-      // Error fetching profile
+      // Error fetching profile or offline timeout
     }
     return _currentProfile;
   }
@@ -596,7 +600,11 @@ class AuthService {
   Future<List<UserProfile>> getLinkedPatients(String caregiverUid) async {
     try {
       if (caregiverUid.isNotEmpty) {
-        final caregiverDoc = await _firestore.collection('users').doc(caregiverUid).get();
+        final caregiverDoc = await _firestore
+            .collection('users')
+            .doc(caregiverUid)
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
         if (caregiverDoc.exists && caregiverDoc.data() != null) {
           final List<dynamic> patientIds = caregiverDoc.data()!['linkedPatientIds'] ?? [];
           if (patientIds.isNotEmpty) {
@@ -606,7 +614,11 @@ class AuthService {
               final pidStr = '$pid'.trim();
               if (pidStr.isEmpty) continue;
               try {
-                final pDoc = await _firestore.collection('users').doc(pidStr).get();
+                final pDoc = await _firestore
+                    .collection('users')
+                    .doc(pidStr)
+                    .get()
+                    .timeout(const Duration(milliseconds: 1500));
                 if (pDoc.exists && pDoc.data() != null) {
                   final data = Map<String, dynamic>.from(pDoc.data()!);
                   data['uid'] ??= pDoc.id;
@@ -624,7 +636,8 @@ class AuthService {
           .collection('users')
           .where('role', isEqualTo: 'patient')
           .limit(10)
-          .get();
+          .get()
+          .timeout(const Duration(milliseconds: 1500));
       if (allPatientsSnap.docs.isNotEmpty) {
         return allPatientsSnap.docs.map((doc) {
           final data = Map<String, dynamic>.from(doc.data());
