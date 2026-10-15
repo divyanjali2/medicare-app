@@ -11,6 +11,7 @@ import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'add_manually_screen.dart';
+import 'patient_medicines_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   final String? patientId;
@@ -98,7 +99,12 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
         viewingPatientName: _isCaregiverMode ? _patientName : null,
       );
-    } else if (index == 3 && _isCaregiverMode) {
+    } else if (index == 3) {
+      nextScreen = PatientMedicinesScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
+    } else if (index == 4 && _isCaregiverMode) {
       nextScreen = const CaregiverScreen();
     } else {
       return;
@@ -106,14 +112,12 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: const Duration(milliseconds: 150),
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
         ),
-        (r) => false,
       );
     });
   }
@@ -538,6 +542,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 child: const Icon(Icons.add, color: AppColors.brandTeal),
               ),
               label: 'Add',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Medicines',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(

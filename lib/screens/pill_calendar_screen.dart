@@ -12,6 +12,7 @@ import '../services/auth_service.dart';
 import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'add_medicine_screen.dart';
+import 'patient_medicines_screen.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/local_db_service.dart';
@@ -322,7 +323,12 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
         patientId: _isCaregiverMode ? _effectivePatientId : null,
         patientName: _isCaregiverMode ? _patientName : null,
       );
-    } else if (index == 3 && _isCaregiverMode) {
+    } else if (index == 3) {
+      nextScreen = PatientMedicinesScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
+      );
+    } else if (index == 4 && _isCaregiverMode) {
       nextScreen = const CaregiverScreen();
     } else {
       return;
@@ -330,14 +336,12 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: const Duration(milliseconds: 150),
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
         ),
-        (r) => false,
       );
     });
   }
@@ -568,6 +572,11 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
               icon: Icon(Icons.add),
               label: 'Add',
             ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Medicines',
+            ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(
                 icon: const Icon(Icons.people_outline),
@@ -604,8 +613,14 @@ class _DayDetailPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final localeStr = Localizations.localeOf(context).toString();
-    final dateStr = DateFormat('EEEE, MMMM d, yyyy', localeStr).format(day);
+    final locale = Localizations.maybeLocaleOf(context);
+    final localeStr = locale?.toString() ?? 'en';
+    String dateStr;
+    try {
+      dateStr = DateFormat('EEEE, MMMM d, yyyy', localeStr).format(day);
+    } catch (_) {
+      dateStr = DateFormat('EEEE, MMMM d, yyyy').format(day);
+    }
 
     final logs = doses
         .map((d) => DoseLog(

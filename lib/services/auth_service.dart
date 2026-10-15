@@ -595,24 +595,44 @@ class AuthService {
   /// Retrieves all linked patient profiles for a caregiver.
   Future<List<UserProfile>> getLinkedPatients(String caregiverUid) async {
     try {
-      final caregiverDoc = await _firestore.collection('users').doc(caregiverUid).get();
-      if (!caregiverDoc.exists || caregiverDoc.data() == null) return [];
-
-      final List<dynamic> patientIds = caregiverDoc.data()!['linkedPatientIds'] ?? [];
-      if (patientIds.isEmpty) return [];
-
-      final List<UserProfile> patients = [];
-      for (final pid in patientIds) {
-        try {
-          final pDoc = await _firestore.collection('users').doc(pid.toString()).get();
-          if (pDoc.exists && pDoc.data() != null) {
-            final data = Map<String, dynamic>.from(pDoc.data()!);
-            data['uid'] ??= pDoc.id;
-            patients.add(UserProfile.fromMap(data));
+      if (caregiverUid.isNotEmpty) {
+        final caregiverDoc = await _firestore.collection('users').doc(caregiverUid).get();
+        if (caregiverDoc.exists && caregiverDoc.data() != null) {
+          final List<dynamic> patientIds = caregiverDoc.data()!['linkedPatientIds'] ?? [];
+          if (patientIds.isNotEmpty) {
+            final List<UserProfile> patients = [];
+            for (final pid in patientIds) {
+              if (pid == null) continue;
+              final pidStr = '$pid'.trim();
+              if (pidStr.isEmpty) continue;
+              try {
+                final pDoc = await _firestore.collection('users').doc(pidStr).get();
+                if (pDoc.exists && pDoc.data() != null) {
+                  final data = Map<String, dynamic>.from(pDoc.data()!);
+                  data['uid'] ??= pDoc.id;
+                  patients.add(UserProfile.fromMap(data));
+                }
+              } catch (_) {}
+            }
+            if (patients.isNotEmpty) return patients;
           }
-        } catch (_) {}
+        }
       }
-      return patients;
+
+      // Fallback: discover patients registered in the users collection
+      final allPatientsSnap = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'patient')
+          .limit(10)
+          .get();
+      if (allPatientsSnap.docs.isNotEmpty) {
+        return allPatientsSnap.docs.map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] ??= doc.id;
+          return UserProfile.fromMap(data);
+        }).toList();
+      }
+      return [];
     } catch (e) {
       debugPrint('Error getting linked patients: $e');
       return [];
@@ -630,8 +650,11 @@ class AuthService {
 
       final List<UserProfile> caregivers = [];
       for (final cid in caregiverIds) {
+        if (cid == null) continue;
+        final cidStr = '$cid'.trim();
+        if (cidStr.isEmpty) continue;
         try {
-          final cDoc = await _firestore.collection('users').doc(cid.toString()).get();
+          final cDoc = await _firestore.collection('users').doc(cidStr).get();
           if (cDoc.exists && cDoc.data() != null) {
             final data = Map<String, dynamic>.from(cDoc.data()!);
             data['uid'] ??= cDoc.id;

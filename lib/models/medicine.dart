@@ -130,16 +130,53 @@ class DoseLog {
         'synced': synced ? 1 : 0,
       };
 
-  factory DoseLog.fromMap(Map<String, dynamic> map) => DoseLog(
-        id: map['id'] as String,
-        medicineId: map['medicineId'] as String,
-        scheduledFor: DateTime.parse(map['scheduledFor'] as String),
-        status: DoseStatus.values.byName(map['status'] as String),
-        respondedAt: map['respondedAt'] != null
-            ? DateTime.parse(map['respondedAt'] as String)
-            : null,
-        synced: (map['synced'] as int) == 1,
-      );
+  factory DoseLog.fromMap(Map<String, dynamic> map) {
+    DateTime parsedScheduled;
+    final rawScheduled = map['scheduledFor'];
+    if (rawScheduled is String && rawScheduled.isNotEmpty) {
+      parsedScheduled = DateTime.tryParse(rawScheduled) ?? DateTime.now();
+    } else if (rawScheduled is DateTime) {
+      parsedScheduled = rawScheduled;
+    } else {
+      try {
+        final dynamic dt = rawScheduled;
+        parsedScheduled = dt?.toDate != null ? (dt.toDate() as DateTime) : DateTime.now();
+      } catch (_) {
+        parsedScheduled = DateTime.now();
+      }
+    }
+
+    DateTime? parsedResponded;
+    final rawResponded = map['respondedAt'];
+    if (rawResponded is String && rawResponded.isNotEmpty) {
+      parsedResponded = DateTime.tryParse(rawResponded);
+    } else if (rawResponded is DateTime) {
+      parsedResponded = rawResponded;
+    } else if (rawResponded != null) {
+      try {
+        final dynamic dt = rawResponded;
+        parsedResponded = dt?.toDate != null ? (dt.toDate() as DateTime) : null;
+      } catch (_) {}
+    }
+
+    final statusStr = map['status']?.toString();
+    final status = DoseStatus.values.firstWhere(
+      (s) => s.name == statusStr,
+      orElse: () => DoseStatus.pending,
+    );
+
+    final rawSynced = map['synced'];
+    final isSynced = rawSynced == 1 || rawSynced == true || rawSynced == '1';
+
+    return DoseLog(
+      id: (map['id'] ?? '').toString(),
+      medicineId: (map['medicineId'] ?? '').toString(),
+      scheduledFor: parsedScheduled,
+      status: status,
+      respondedAt: parsedResponded,
+      synced: isSynced,
+    );
+  }
 }
 
 /// Summarizes daily medication adherence from a list of scheduled [DoseLog] entries.

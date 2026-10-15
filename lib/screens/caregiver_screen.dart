@@ -1,15 +1,45 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/medicine.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import 'add_medicine_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
+import 'patient_medicines_screen.dart';
+
+class _PatientCardData {
+  final UserProfile profile;
+  final int activeMedsCount;
+  final int todayTaken;
+  final int todayTotal;
+  final int todayMissed;
+  final int adherencePct;
+  final bool needsAttention;
+  final String statusText;
+  final Color statusBadgeColor;
+  final Color statusTextColor;
+
+  _PatientCardData({
+    required this.profile,
+    required this.activeMedsCount,
+    required this.todayTaken,
+    required this.todayTotal,
+    required this.todayMissed,
+    required this.adherencePct,
+    required this.needsAttention,
+    required this.statusText,
+    required this.statusBadgeColor,
+    required this.statusTextColor,
+  });
+}
 
 /// Screen — Caregiver View Dashboard.
 ///
@@ -23,8 +53,10 @@ class CaregiverScreen extends StatefulWidget {
 }
 
 class _CaregiverScreenState extends State<CaregiverScreen> {
-  List<UserProfile> _linkedPatients = [];
+  List<_PatientCardData> _patientCards = [];
   bool _isLoadingPatients = true;
+  int _overallAdherence = 100;
+  int _needsAttentionCount = 0;
 
   @override
   void initState() {
@@ -36,16 +68,40 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     setState(() => _isLoadingPatients = true);
     try {
       final caregiverUid = AuthService.instance.currentUser?.uid ??
-          AuthService.instance.currentProfile?.uid;
-      if (caregiverUid != null && caregiverUid.isNotEmpty) {
-        final patients = await AuthService.instance.getLinkedPatients(caregiverUid);
-        if (mounted) {
-          setState(() {
-            _linkedPatients = patients;
-            _isLoadingPatients = false;
-          });
-          return;
+          AuthService.instance.currentProfile?.uid ??
+          '';
+
+      final List<UserProfile> patients =
+          await AuthService.instance.getLinkedPatients(caregiverUid);
+
+      final List<_PatientCardData> cards = [];
+      int totalAdherenceSum = 0;
+      int adherenceCount = 0;
+      int attentionCount = 0;
+
+      for (final patient in patients) {
+        final cardData = await _computePatientData(patient);
+        cards.add(cardData);
+        if (cardData.needsAttention) {
+          attentionCount++;
         }
+        if (cardData.activeMedsCount > 0) {
+          totalAdherenceSum += cardData.adherencePct;
+          adherenceCount++;
+        }
+      }
+
+      final avgAdherence =
+          adherenceCount > 0 ? (totalAdherenceSum / adherenceCount).round() : 100;
+
+      if (mounted) {
+        setState(() {
+          _patientCards = cards;
+          _overallAdherence = avgAdherence;
+          _needsAttentionCount = attentionCount;
+          _isLoadingPatients = false;
+        });
+        return;
       }
     } catch (e) {
       debugPrint('Error loading linked patients: $e');
@@ -53,6 +109,170 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     if (mounted) {
       setState(() => _isLoadingPatients = false);
     }
+  }
+
+  Future<_PatientCardData> _computePatientData(UserProfile patient) async {
+    int activeMedsCount = 0;
+    int todayTaken = 0;
+    int todayTotal = 0;
+    int todayMissed = 0;
+    int weekTaken = 0;
+    int weekTotal = 0;
+
+    try {
+      // 1. Fetch patient's medicines (local + firestore)
+      final List<Medicine> meds = [];
+      try {
+        final localMeds = await LocalDbService.instance.getMedicines(patient.uid);
+        meds.addAll(localMeds);
+      } catch (_) {}
+
+      try {
+        final fMeds = await FirebaseFirestore.instance
+            .collection('medicines')
+            .where('patientId', isEqualTo: patient.uid)
+            .get();
+        for (final doc in fMeds.docs) {
+          try {
+            final data = Map<String, dynamic>.from(doc.data());
+            data['id'] ??= doc.id;
+            final m = Medicine.fromMap(data);
+            if (!meds.any((x) => x.id == m.id)) meds.add(m);
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      try {
+        final subMeds = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(patient.uid)
+            .collection('medicines')
+            .get();
+        for (final doc in subMeds.docs) {
+          try {
+            final data = Map<String, dynamic>.from(doc.data());
+            data['id'] ??= doc.id;
+            final m = Medicine.fromMap(data);
+            if (!meds.any((x) => x.id == m.id)) meds.add(m);
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      activeMedsCount = meds.length;
+
+      // 2. Compute 7-day adherence and today's dose stats
+      final now = DateTime.now();
+      final todayDate = DateTime(now.year, now.month, now.day);
+      final sevenDaysAgo = todayDate.subtract(const Duration(days: 6));
+
+      final Map<String, DoseLog> logMap = {};
+
+      // Local dose logs for the last 7 days
+      for (int i = 0; i < 7; i++) {
+        final d = todayDate.subtract(Duration(days: i));
+        try {
+          final dayLogs = await LocalDbService.instance.getDoseLogsForDay(d);
+          for (final l in dayLogs) {
+            if (meds.any((m) => m.id == l.medicineId)) {
+              logMap[l.id] = l;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Firestore dose logs
+      try {
+        final startIso = sevenDaysAgo.toIso8601String();
+        final snap = await FirebaseFirestore.instance
+            .collection('dose_logs')
+            .where('scheduledFor', isGreaterThanOrEqualTo: startIso)
+            .get();
+        for (final doc in snap.docs) {
+          try {
+            final data = Map<String, dynamic>.from(doc.data());
+            data['id'] ??= doc.id;
+            final l = DoseLog.fromMap(data);
+            if (meds.any((m) => m.id == l.medicineId)) {
+              logMap[l.id] = l;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      for (final log in logMap.values) {
+        weekTotal++;
+        if (log.status == DoseStatus.taken) {
+          weekTaken++;
+        }
+
+        final isToday = log.scheduledFor.year == now.year &&
+            log.scheduledFor.month == now.month &&
+            log.scheduledFor.day == now.day;
+        if (isToday) {
+          todayTotal++;
+          if (log.status == DoseStatus.taken) {
+            todayTaken++;
+          } else if (log.status == DoseStatus.missed || log.status == DoseStatus.late) {
+            todayMissed++;
+          }
+        }
+      }
+
+      // If no logs recorded yet today but patient has scheduled times
+      if (todayTotal == 0 && meds.isNotEmpty) {
+        for (final m in meds) {
+          todayTotal += m.scheduledTimes.isNotEmpty ? m.scheduledTimes.length : 1;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error calculating patient data for ${patient.name}: $e');
+    }
+
+    final adherence = weekTotal > 0 ? ((weekTaken / weekTotal) * 100).round() : 100;
+    final needsAttention = todayMissed > 0 || (weekTotal >= 2 && adherence < 80);
+
+    String statusText;
+    Color badgeColor;
+    Color textColor;
+
+    if (todayMissed > 0) {
+      statusText = '$todayMissed dose${todayMissed > 1 ? "s" : ""} missed';
+      badgeColor = const Color(0xFFFFE5DE);
+      textColor = const Color(0xFFD65646);
+    } else if (todayTotal > 0 && todayTaken >= todayTotal) {
+      statusText = 'All doses taken ($todayTaken/$todayTotal)';
+      badgeColor = const Color(0xFFD4EED8);
+      textColor = const Color(0xFF2E7D4E);
+    } else if (todayTaken > 0) {
+      statusText = '$todayTaken of $todayTotal taken today';
+      badgeColor = const Color(0xFFE0F2FE);
+      textColor = const Color(0xFF0369A1);
+    } else if (todayTotal > 0) {
+      statusText = '$todayTotal ${todayTotal == 1 ? "dose" : "doses"} pending today';
+      badgeColor = const Color(0xFFFEF3C7);
+      textColor = const Color(0xFF92400E);
+    } else if (activeMedsCount > 0) {
+      statusText = '$activeMedsCount medications active';
+      badgeColor = const Color(0xFFF1F5F9);
+      textColor = AppColors.textDark;
+    } else {
+      statusText = 'No medications scheduled';
+      badgeColor = const Color(0xFFF1F5F9);
+      textColor = AppColors.textMuted;
+    }
+
+    return _PatientCardData(
+      profile: patient,
+      activeMedsCount: activeMedsCount,
+      todayTaken: todayTaken,
+      todayTotal: todayTotal,
+      todayMissed: todayMissed,
+      adherencePct: adherence,
+      needsAttention: needsAttention,
+      statusText: statusText,
+      statusBadgeColor: badgeColor,
+      statusTextColor: textColor,
+    );
   }
 
   void _openLinkPatientDialog(BuildContext context) {
@@ -164,7 +384,18 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     ).then((_) => _loadLinkedPatients());
   }
 
-  Future<void> _unlinkPatient(BuildContext context, UserProfile patient) async {
+  void _openPatientMedicines(BuildContext context, UserProfile patient) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PatientMedicinesScreen(
+          viewingPatientId: patient.uid,
+          viewingPatientName: patient.name,
+        ),
+      ),
+    ).then((_) => _loadLinkedPatients());
+  }
+
+  Future<void> _unlinkPatient(UserProfile patient) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -183,7 +414,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     );
 
     if (confirm != true) return;
+    if (!mounted) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final caregiverUid = AuthService.instance.currentUser?.uid ??
           AuthService.instance.currentProfile?.uid ??
@@ -193,7 +426,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
         patientUid: patient.uid,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Unlinked from ${patient.name}'),
             behavior: SnackBarBehavior.floating,
@@ -203,7 +436,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Failed to unlink: $e')),
         );
       }
@@ -356,9 +589,14 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final localeStr = Localizations.localeOf(context).toString();
-    // Default to the mock date or dynamic date formatted
-    final todayStr = DateFormat('EEEE, MMMM d', localeStr).format(DateTime(2026, 9, 22));
+    final locale = Localizations.maybeLocaleOf(context);
+    final localeStr = locale?.toString() ?? 'en';
+    String todayStr;
+    try {
+      todayStr = DateFormat('EEEE, MMMM d', localeStr).format(DateTime.now());
+    } catch (_) {
+      todayStr = DateFormat('EEEE, MMMM d').format(DateTime.now());
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -431,9 +669,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Row(
+                        const Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
+                          children: [
                             LanguagePillSelector(isDark: true),
                             SizedBox(width: 8),
                             ProfileMenuButton(isDark: true),
@@ -478,7 +716,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 // 2 Metric Summary Cards
                 Row(
                   children: [
-                    // Card 1: 92% 7-day adherence
+                    // Card 1: Dynamic 7-day adherence
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -489,20 +727,20 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           color: const Color(0xFFD4EED8),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '92%',
-                              style: TextStyle(
+                              '$_overallAdherence%',
+                              style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF357A4C),
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            SizedBox(height: 6),
-                            Text(
+                            const SizedBox(height: 6),
+                            const Text(
                               '7-day adherence',
                               style: TextStyle(
                                 fontSize: 14,
@@ -517,7 +755,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
 
                     const SizedBox(width: 14),
 
-                    // Card 2: 2 Need attention
+                    // Card 2: Dynamic Need attention
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -525,25 +763,29 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           vertical: 18,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFE5DE),
+                          color: _needsAttentionCount > 0
+                              ? const Color(0xFFFFE5DE)
+                              : const Color(0xFFD4EED8),
                           borderRadius: BorderRadius.circular(18),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '2',
+                              '$_needsAttentionCount',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFFD65646),
+                                color: _needsAttentionCount > 0
+                                    ? const Color(0xFFD65646)
+                                    : const Color(0xFF357A4C),
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             Text(
-                              'Need attention',
-                              style: TextStyle(
+                              _needsAttentionCount == 0 ? 'All good' : 'Need attention',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textDark,
@@ -585,10 +827,16 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
 
                 if (_isLoadingPatients)
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
-                    child: Center(child: CircularProgressIndicator(color: AppColors.brandTeal)),
+                    padding: EdgeInsets.symmetric(vertical: 36.0),
+                    child: Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(color: AppColors.brandTeal, strokeWidth: 3),
+                      ),
+                    ),
                   )
-                else if (_linkedPatients.isEmpty)
+                else if (_patientCards.isEmpty)
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -633,147 +881,343 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     ),
                   )
                 else
-                  ..._linkedPatients.map(
-                    (patient) => Material(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      elevation: 0,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () => _openPatientDashboard(context, patient),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 14),
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFFE2E4E8),
-                              width: 1.2,
-                            ),
+                  ..._patientCards.map(
+                    (cardData) {
+                      final patient = cardData.profile;
+                      final initial = patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: cardData.needsAttention
+                                ? const Color(0xFFFFCDD2)
+                                : const Color(0xFFE2E4E8),
+                            width: cardData.needsAttention ? 1.6 : 1.2,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => _openPatientDashboard(context, patient),
+                            child: Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFDCF0F2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
-                                        style: const TextStyle(
-                                          color: Color(0xFF107485),
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
+                                  // Top row: Avatar, Name, Phone & Menu
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          color: cardData.needsAttention
+                                              ? const Color(0xFFFFEBEE)
+                                              : const Color(0xFFDCF0F2),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            initial,
+                                            style: TextStyle(
+                                              color: cardData.needsAttention
+                                                  ? const Color(0xFFD32F2F)
+                                                  : const Color(0xFF107485),
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          patient.name,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.textDark,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          patient.phoneNumber ?? 'Patient',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF64748B),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    onSelected: (value) {
-                                      if (value == 'view') {
-                                        _openPatientDashboard(context, patient);
-                                      } else if (value == 'unlink') {
-                                        _unlinkPatient(context, patient);
-                                      }
-                                    },
-                                    itemBuilder: (ctx) => [
-                                      const PopupMenuItem(
-                                        value: 'view',
-                                        child: Row(
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Icon(Icons.visibility_outlined, size: 18, color: AppColors.brandTeal),
-                                            SizedBox(width: 8),
-                                            Text('View Schedule'),
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    patient.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: AppColors.textDark,
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (cardData.needsAttention) ...[
+                                                  const SizedBox(width: 6),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFFFEBEE),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                    ),
+                                                    child: const Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFD32F2F)),
+                                                        SizedBox(width: 2),
+                                                        Text(
+                                                          'Attention',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: Color(0xFFD32F2F),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              patient.phoneNumber ?? 'Patient',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF64748B),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'unlink',
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        onSelected: (value) {
+                                          if (value == 'schedule') {
+                                            _openPatientDashboard(context, patient);
+                                          } else if (value == 'medicines') {
+                                            _openPatientMedicines(context, patient);
+                                          } else if (value == 'checkin') {
+                                            _openCheckInSheet(context, patient.name);
+                                          } else if (value == 'unlink') {
+                                            _unlinkPatient(patient);
+                                          }
+                                        },
+                                        itemBuilder: (ctx) => [
+                                          const PopupMenuItem(
+                                            value: 'schedule',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.brandTeal),
+                                                SizedBox(width: 8),
+                                                Text('View Schedule'),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'medicines',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.medication_outlined, size: 18, color: Color(0xFF2E7D4E)),
+                                                SizedBox(width: 8),
+                                                Text('View Medicines'),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'checkin',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.chat_bubble_outline, size: 18, color: AppColors.brandTeal),
+                                                SizedBox(width: 8),
+                                                Text('Check In'),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'unlink',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.link_off, size: 18, color: Colors.redAccent),
+                                                SizedBox(width: 8),
+                                                Text('Unlink Patient', style: TextStyle(color: Colors.redAccent)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 14),
+
+                                  // Dynamic Status & Stats Badges Row
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: [
+                                      // Today's Dose Status Badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: cardData.statusBadgeColor,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
                                         child: Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.link_off, size: 18, color: Colors.redAccent),
-                                            SizedBox(width: 8),
-                                            Text('Unlink Patient', style: TextStyle(color: Colors.redAccent)),
+                                            Icon(
+                                              cardData.todayMissed > 0
+                                                  ? Icons.error_outline
+                                                  : cardData.todayTaken >= cardData.todayTotal && cardData.todayTotal > 0
+                                                      ? Icons.check_circle_outline
+                                                      : Icons.schedule,
+                                              size: 14,
+                                              color: cardData.statusTextColor,
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              cardData.statusText,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: cardData.statusTextColor,
+                                              ),
+                                            ),
                                           ],
+                                        ),
+                                      ),
+
+                                      // Active Meds Count Badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.medication, size: 14, color: Color(0xFF64748B)),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              '${cardData.activeMedsCount} ${cardData.activeMedsCount == 1 ? "med" : "meds"}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF475569),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      // 7-day Adherence Badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: cardData.adherencePct >= 80
+                                              ? const Color(0xFFDCF2E1)
+                                              : const Color(0xFFFFE5DE),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.trending_up,
+                                              size: 14,
+                                              color: cardData.adherencePct >= 80
+                                                  ? const Color(0xFF2E7D4E)
+                                                  : const Color(0xFFD65646),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${cardData.adherencePct}% 7d',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: cardData.adherencePct >= 80
+                                                    ? const Color(0xFF2E7D4E)
+                                                    : const Color(0xFFD65646),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 14),
+
+                                  // Quick Action Buttons
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () => _openPatientDashboard(context, patient),
+                                          icon: const Icon(Icons.calendar_month, size: 16),
+                                          label: const Text('Schedule'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.brandTeal,
+                                            foregroundColor: Colors.white,
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(vertical: 10),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () => _openPatientMedicines(context, patient),
+                                          icon: const Icon(Icons.medication_outlined, size: 16),
+                                          label: const Text('Meds'),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.brandTeal,
+                                            side: const BorderSide(color: AppColors.brandTeal),
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(vertical: 10),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      OutlinedButton.icon(
+                                        onPressed: () => _openCheckInSheet(context, patient.name),
+                                        icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                                        label: const Text('Check In'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: const Color(0xFF2E7D4E),
+                                          side: const BorderSide(color: Color(0xFF2E7D4E)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () => _openPatientDashboard(context, patient),
-                                      icon: const Icon(Icons.visibility_outlined, size: 16),
-                                      label: const Text('View Schedule'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.brandTeal,
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  OutlinedButton.icon(
-                                    onPressed: () => _openCheckInSheet(context, patient.name),
-                                    icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                                    label: const Text('Check In'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF2E7D4E),
-                                      side: const BorderSide(color: Color(0xFF2E7D4E)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
               ],
             ),
@@ -787,7 +1231,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
         child: BottomNavigationBar(
-          currentIndex: 2,
+          currentIndex: 3,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.brandTeal,
           unselectedItemColor: AppColors.textMuted,
@@ -797,9 +1241,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: (index) {
-            if (index == 2) return;
-            final String? primaryPatientId = _linkedPatients.isNotEmpty ? _linkedPatients.first.uid : null;
-            final String? primaryPatientName = _linkedPatients.isNotEmpty ? _linkedPatients.first.name : null;
+            if (index == 3) return;
+            final String? primaryPatientId = _patientCards.isNotEmpty ? _patientCards.first.profile.uid : null;
+            final String? primaryPatientName = _patientCards.isNotEmpty ? _patientCards.first.profile.name : null;
 
             Widget nextScreen;
             if (index == 0) {
@@ -812,20 +1256,23 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 patientId: primaryPatientId,
                 patientName: primaryPatientName,
               );
+            } else if (index == 2) {
+              nextScreen = PatientMedicinesScreen(
+                viewingPatientId: primaryPatientId,
+                viewingPatientName: primaryPatientName,
+              );
             } else {
               return;
             }
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              Navigator.of(context).pushAndRemoveUntil(
+              Navigator.of(context).pushReplacement(
                 PageRouteBuilder(
                   pageBuilder: (_, __, ___) => nextScreen,
-                  transitionDuration: const Duration(milliseconds: 150),
-                  transitionsBuilder: (_, animation, __, child) =>
-                      FadeTransition(opacity: animation, child: child),
+                  transitionDuration: Duration.zero,
+                  reverseTransitionDuration: Duration.zero,
                 ),
-                (r) => false,
               );
             });
           },
@@ -838,6 +1285,11 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.add),
               label: 'Add',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Medicines',
             ),
             BottomNavigationBarItem(
               icon: Container(

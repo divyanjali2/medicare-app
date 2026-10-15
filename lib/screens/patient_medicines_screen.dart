@@ -14,6 +14,7 @@ import 'caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
 
+/// Full page to view all medicines added for the patient.
 class PatientMedicinesScreen extends StatefulWidget {
   final String? viewingPatientId;
   final String? viewingPatientName;
@@ -94,7 +95,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
         combined.addAll(localMeds);
       } catch (_) {}
 
-      // 2. Load from Firebase Firestore
+      // 2. Load from Firebase Firestore root collection
       try {
         final snap = await FirebaseFirestore.instance
             .collection('medicines')
@@ -110,24 +111,25 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             }
           } catch (_) {}
         }
-        // Also check users/{patientId}/medicines subcollection
-        try {
-          final subSnap = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(patientId)
-              .collection('medicines')
-              .get();
-          for (final doc in subSnap.docs) {
-            try {
-              final data = doc.data();
-              data['id'] ??= doc.id;
-              final med = Medicine.fromMap(data);
-              if (!combined.any((m) => m.id == med.id || (m.name.toLowerCase() == med.name.toLowerCase() && m.name.isNotEmpty))) {
-                combined.add(med);
-              }
-            } catch (_) {}
-          }
-        } catch (_) {}
+      } catch (_) {}
+
+      // 3. Check users/{patientId}/medicines subcollection
+      try {
+        final subSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(patientId)
+            .collection('medicines')
+            .get();
+        for (final doc in subSnap.docs) {
+          try {
+            final data = doc.data();
+            data['id'] ??= doc.id;
+            final med = Medicine.fromMap(data);
+            if (!combined.any((m) => m.id == med.id || (m.name.toLowerCase() == med.name.toLowerCase() && m.name.isNotEmpty))) {
+              combined.add(med);
+            }
+          } catch (_) {}
+        }
       } catch (_) {}
     } catch (_) {
       // Defensive fallback
@@ -224,14 +226,12 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: const Duration(milliseconds: 150),
-          transitionsBuilder: (_, animation, __, child) =>
-              FadeTransition(opacity: animation, child: child),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
         ),
-        (r) => false,
       );
     });
   }
@@ -239,6 +239,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final displayName = _patientName.isNotEmpty ? _patientName : 'Patient';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -343,7 +344,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Monitoring $_patientName\'s medicines',
+                        'Monitoring $displayName\'s medicines',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -351,19 +352,6 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                         ),
                       ),
                     ),
-                    if (Navigator.of(context).canPop())
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Exit',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.brandNavy,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -373,75 +361,88 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.brandTeal),
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          color: AppColors.brandTeal,
+                          strokeWidth: 3,
+                        ),
+                      ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _loadAllMedicines,
-                      color: AppColors.brandTeal,
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _isCaregiverMode
-                                          ? '$_patientName\'s medicines'
-                                          : (l10n?.yourMedicines ?? 'Your medicines'),
-                                      style: const TextStyle(
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textDark,
-                                      ),
+                  : ListView(
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Added Medicines',
+                                    style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textDark,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${_medicines.length} ${_medicines.length == 1 ? "medicine" : "medicines"} added for this patient',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => AddMedicineScreen(
-                                        patientId: _isCaregiverMode ? _effectivePatientId : null,
-                                        patientName: _isCaregiverMode ? _patientName : null,
-                                      ),
-                                    ),
-                                  ).then((_) => _loadAllMedicines());
-                                },
-                                icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.brandTeal,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
                                   ),
-                                  elevation: 0,
-                                ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_medicines.length} ${_medicines.length == 1 ? "medicine" : "medicines"} configured for $displayName',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.refresh, color: AppColors.brandTeal, size: 22),
+                                  onPressed: _loadAllMedicines,
+                                  tooltip: 'Refresh',
+                                ),
+                                const SizedBox(width: 4),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => AddMedicineScreen(
+                                          patientId: _isCaregiverMode ? _effectivePatientId : null,
+                                          patientName: _isCaregiverMode ? _patientName : null,
+                                        ),
+                                      ),
+                                    ).then((_) => _loadAllMedicines());
+                                  },
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('Add'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.brandTeal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
 
                           if (_medicines.isEmpty)
                             Container(
                               padding: const EdgeInsets.all(32),
-                              margin: const EdgeInsets.only(top: 40),
+                              margin: const EdgeInsets.only(top: 20),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF9F9FB),
                                 borderRadius: BorderRadius.circular(20),
@@ -473,7 +474,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   const Text(
-                                    'Tap the Add button to add a prescription or scan a label.',
+                                    'Tap the Add button above to add a prescription or scan a label.',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                                   ),
@@ -486,7 +487,6 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                           const SizedBox(height: 24),
                         ],
                       ),
-                    ),
             ),
           ],
         ),
@@ -531,7 +531,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                 ),
                 child: const Icon(Icons.medication, color: AppColors.brandTeal),
               ),
-              label: 'Meds',
+              label: 'Medicines',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(
@@ -553,15 +553,13 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
   }
 
   Widget _buildMedicineCard(Medicine med) {
-    String timeHint = 'Morning';
-    if (med.scheduledTimes.isNotEmpty) {
-      final hour = med.scheduledTimes.first.hour;
-      if (hour >= 18) {
-        timeHint = 'Night';
-      } else if (hour >= 12) {
-        timeHint = 'Evening';
-      }
-    }
+    final timesFormatted = med.scheduledTimes.isNotEmpty
+        ? med.scheduledTimes.map((t) {
+            final h = t.hour.toString().padLeft(2, '0');
+            final m = t.minute.toString().padLeft(2, '0');
+            return '$h:$m';
+          }).join(', ')
+        : '08:00';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -585,14 +583,14 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: AppColors.brandTeal.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
-                  child: Icon(Icons.medication_rounded, color: AppColors.brandTeal, size: 26),
+                  child: Icon(Icons.medication_rounded, color: AppColors.brandTeal, size: 24),
                 ),
               ),
               const SizedBox(width: 14),
@@ -608,76 +606,44 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                         color: AppColors.textDark,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            med.dosage,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDark,
-                            ),
-                          ),
+                    if (med.dosage.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        med.dosage,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2FE),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            med.frequency,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0369A1),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                timeHint == 'Night'
-                                    ? Icons.nightlight_round
-                                    : (timeHint == 'Evening'
-                                        ? Icons.wb_twilight_rounded
-                                        : Icons.wb_sunny_rounded),
-                                size: 12,
-                                color: const Color(0xFFD97706),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                timeHint,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFFB45309),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ],
                 ),
               ),
+              if (med.addedViaScan)
+                Container(
+                  margin: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2FE),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.document_scanner_outlined, size: 12, color: Color(0xFF0369A1)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Scanned',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0369A1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 20),
                 onPressed: () => _deleteMedicine(med),
@@ -685,14 +651,67 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              if (med.frequency.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.repeat, size: 13, color: AppColors.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        med.frequency,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.access_time_filled_rounded, size: 13, color: AppColors.brandTeal),
+                    const SizedBox(width: 4),
+                    Text(
+                      timesFormatted,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.brandTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           if (med.instructions.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Row(
                 children: [
