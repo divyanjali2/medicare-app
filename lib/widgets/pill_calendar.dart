@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/medicine.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// A month-grid calendar widget that displays daily medication adherence status.
 ///
@@ -79,7 +80,7 @@ class PillCalendar extends StatelessWidget {
             },
           ),
           const SizedBox(height: 16),
-          _buildLegend(),
+          _buildLegend(context),
         ],
       ),
     );
@@ -146,15 +147,16 @@ class PillCalendar extends StatelessWidget {
     );
   }
 
-  Widget _buildLegend() {
-    return const Row(
+  Widget _buildLegend(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _LegendDot(color: AppColors.statusTaken, label: 'Taken'),
-        SizedBox(width: 16),
-        _LegendDot(color: AppColors.statusLate, label: 'Late'),
-        SizedBox(width: 16),
-        _LegendDot(color: AppColors.statusMissed, label: 'Missed'),
+        _LegendDot(color: AppColors.statusTaken, label: l10n?.taken ?? 'Taken'),
+        const SizedBox(width: 16),
+        _LegendDot(color: AppColors.statusLate, label: l10n?.statusLate ?? 'Late'),
+        const SizedBox(width: 16),
+        _LegendDot(color: AppColors.statusMissed, label: l10n?.statusMissed ?? 'Missed'),
       ],
     );
   }
@@ -179,11 +181,11 @@ class _DayCell extends StatelessWidget {
   Color _backgroundColor() {
     switch (status) {
       case DoseStatus.taken:
-        return AppColors.statusTaken.withValues(alpha: 0.25);
+        return const Color(0xFFD4EED8);
       case DoseStatus.late:
-        return AppColors.statusLate.withValues(alpha: 0.30);
+        return const Color(0xFFFDE8C8);
       case DoseStatus.missed:
-        return AppColors.statusMissed.withValues(alpha: 0.25);
+        return const Color(0xFFFFD7D5);
       case DoseStatus.pending:
       case null:
         return Colors.transparent;

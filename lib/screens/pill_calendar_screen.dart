@@ -654,7 +654,7 @@ class _DayDetailPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _buildSummaryHeader(dayStatus, l10n),
+          _buildSummaryHeader(DateFormat('MMMM d', localeStr).format(day), dayStatus, l10n),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
             child: Divider(color: AppColors.borderSubtle),
@@ -687,7 +687,7 @@ class _DayDetailPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryHeader(DoseStatus? status, AppLocalizations? l10n) {
+  Widget _buildSummaryHeader(String dayMonthStr, DoseStatus? status, AppLocalizations? l10n) {
     String title;
     Color iconBg;
     IconData icon;
@@ -725,9 +725,9 @@ class _DayDetailPanel extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            title,
+            '$dayMonthStr: $title',
             style: const TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
               color: AppColors.textDark,
             ),
