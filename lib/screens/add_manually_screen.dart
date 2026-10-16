@@ -608,9 +608,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'MANUAL ENTRY',
-                                    style: TextStyle(
+                                  Text(
+                                    l10n?.manualEntry ?? 'MANUAL ENTRY',
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.8,
@@ -631,9 +631,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        const Text(
-                          'Fill in the medication details and reminder schedule below.',
-                          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                        Text(
+                          l10n?.manualEntrySubtitle ?? 'Fill in the medication details and reminder schedule below.',
+                          style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
                         ),
                       ],
 
@@ -860,10 +860,10 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                       ),
 
                       // 4. Radio Button: Morning, Evening, Night
-                      _buildFieldLabel('When to take (Time of day)'),
+                      _buildFieldLabel(l10n?.whenToTake ?? 'When to take (Time of day)'),
                       _buildTimeRadioOption(
                         value: 'Morning',
-                        title: 'Morning',
+                        title: l10n?.morning ?? 'Morning',
                         timeSubtitle: 'Around 8:00 AM • Recommended with breakfast',
                         icon: Icons.wb_sunny_rounded,
                         iconColor: const Color(0xFFD97706),
@@ -871,7 +871,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                       ),
                       _buildTimeRadioOption(
                         value: 'Evening',
-                        title: 'Evening',
+                        title: l10n?.evening ?? 'Evening',
                         timeSubtitle: 'Around 6:00 PM • Recommended with dinner',
                         icon: Icons.wb_twilight_rounded,
                         iconColor: const Color(0xFFEA580C),
@@ -879,7 +879,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                       ),
                       _buildTimeRadioOption(
                         value: 'Night',
-                        title: 'Night',
+                        title: l10n?.night ?? 'Night',
                         timeSubtitle: 'Around 9:00 PM • Recommended before sleep',
                         icon: Icons.nightlight_round,
                         iconColor: const Color(0xFF4F46E5),
@@ -934,7 +934,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                               : const Icon(Icons.check, size: 22),
                           label: Text(
                             _isSaving
-                                ? 'Saving...'
+                                ? (l10n?.saving ?? 'Saving...')
                                 : (l10n?.saveMedicine ?? 'Save medicine'),
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),

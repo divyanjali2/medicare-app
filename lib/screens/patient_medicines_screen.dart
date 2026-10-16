@@ -389,9 +389,9 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Added Medicines',
-                                    style: TextStyle(
+                                  Text(
+                                    l10n?.addedMedicinesTitle ?? 'Added Medicines',
+                                    style: const TextStyle(
                                       fontSize: 26,
                                       fontWeight: FontWeight.w800,
                                       color: AppColors.textDark,
@@ -514,19 +514,19 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 11),
           onTap: _onTabTapped,
           items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Today',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: l10n?.navToday ?? 'Today',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
-              activeIcon: Icon(Icons.calendar_month),
-              label: 'Calendar',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.calendar_month_outlined),
+              activeIcon: const Icon(Icons.calendar_month),
+              label: l10n?.navCalendar ?? 'Calendar',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: 'Add',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.add),
+              label: l10n?.navAdd ?? 'Add',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.medication_outlined),
@@ -538,7 +538,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                 ),
                 child: const Icon(Icons.medication, color: AppColors.brandTeal),
               ),
-              label: 'Medicines',
+              label: l10n?.navMedicines ?? 'Medicines',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(
@@ -551,7 +551,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                   ),
                   child: const Icon(Icons.people, color: Color(0xFF0E7485)),
                 ),
-                label: 'Care',
+                label: l10n?.navCare ?? 'Care',
               ),
           ],
         ),

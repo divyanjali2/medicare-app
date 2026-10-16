@@ -62,8 +62,7 @@ import 'app_localizations_si.dart';
 /// be consistent with the languages listed in the AppLocalizations.supportedLocales
 /// property.
 abstract class AppLocalizations {
-  AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+  AppLocalizations(String locale) : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -71,8 +70,7 @@ abstract class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate =
-      _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -84,8 +82,7 @@ abstract class AppLocalizations {
   /// Additional delegates can be added by appending to this list in
   /// MaterialApp. This list does not have to be used at all if a custom list
   /// of delegates is preferred or required.
-  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
-      <LocalizationsDelegate<dynamic>>[
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates = <LocalizationsDelegate<dynamic>>[
     delegate,
     GlobalMaterialLocalizations.delegate,
     GlobalCupertinoLocalizations.delegate,
@@ -541,10 +538,201 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All taken'**
   String get allTakenTitle;
+
+  /// No description provided for @navToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get navToday;
+
+  /// No description provided for @navCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get navCalendar;
+
+  /// No description provided for @navAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get navAdd;
+
+  /// No description provided for @navMedicines.
+  ///
+  /// In en, this message translates to:
+  /// **'Medicines'**
+  String get navMedicines;
+
+  /// No description provided for @navCare.
+  ///
+  /// In en, this message translates to:
+  /// **'Care'**
+  String get navCare;
+
+  /// No description provided for @caregiverView.
+  ///
+  /// In en, this message translates to:
+  /// **'Caregiver view'**
+  String get caregiverView;
+
+  /// No description provided for @peopleYouCareFor.
+  ///
+  /// In en, this message translates to:
+  /// **'People you care for'**
+  String get peopleYouCareFor;
+
+  /// No description provided for @sevenDayAdherence.
+  ///
+  /// In en, this message translates to:
+  /// **'7-day adherence'**
+  String get sevenDayAdherence;
+
+  /// No description provided for @needAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Need attention'**
+  String get needAttention;
+
+  /// No description provided for @allGood.
+  ///
+  /// In en, this message translates to:
+  /// **'All good'**
+  String get allGood;
+
+  /// No description provided for @linkedPatients.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked patients'**
+  String get linkedPatients;
+
+  /// No description provided for @linkPatient.
+  ///
+  /// In en, this message translates to:
+  /// **'Link patient'**
+  String get linkPatient;
+
+  /// No description provided for @noPatientsLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'No patients linked yet'**
+  String get noPatientsLinked;
+
+  /// No description provided for @linkCaregiverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Caregiver'**
+  String get linkCaregiverTitle;
+
+  /// No description provided for @familyAccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Family & Caregiver Access'**
+  String get familyAccessTitle;
+
+  /// No description provided for @familyAccessDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a one-time invite code to your family or doctor so they can see when you take your medicines.'**
+  String get familyAccessDesc;
+
+  /// No description provided for @oneTimeInviteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'ONE-TIME INVITE CODE'**
+  String get oneTimeInviteCode;
+
+  /// No description provided for @generateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate code'**
+  String get generateCode;
+
+  /// No description provided for @codeExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expires in 24 hours'**
+  String get codeExpiresIn;
+
+  /// No description provided for @linkedCaregiversTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'LINKED CAREGIVERS'**
+  String get linkedCaregiversTitle;
+
+  /// No description provided for @noCaregiversLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'No caregivers linked yet'**
+  String get noCaregiversLinked;
+
+  /// No description provided for @unlink.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get unlink;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @addedMedicinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Added Medicines'**
+  String get addedMedicinesTitle;
+
+  /// No description provided for @morning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning'**
+  String get morning;
+
+  /// No description provided for @evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening'**
+  String get evening;
+
+  /// No description provided for @night.
+  ///
+  /// In en, this message translates to:
+  /// **'Night'**
+  String get night;
+
+  /// No description provided for @whenToTake.
+  ///
+  /// In en, this message translates to:
+  /// **'When to take (Time of day)'**
+  String get whenToTake;
+
+  /// No description provided for @saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get saving;
+
+  /// No description provided for @exit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get exit;
+
+  /// No description provided for @manualEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'MANUAL ENTRY'**
+  String get manualEntry;
+
+  /// No description provided for @manualEntrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in the medication details and reminder schedule below.'**
+  String get manualEntrySubtitle;
 }
 
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
@@ -553,25 +741,25 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'si'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>['en', 'si'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'en':
-      return AppLocalizationsEn();
-    case 'si':
-      return AppLocalizationsSi();
+    case 'en': return AppLocalizationsEn();
+    case 'si': return AppLocalizationsSi();
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.'
+  );
 }

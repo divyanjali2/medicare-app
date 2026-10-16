@@ -12,14 +12,13 @@ class AppLocalizationsSi extends AppLocalizations {
   String get appName => 'MediCare';
 
   @override
-  String get yourMedicines => 'ඔයාගේ බෙහෙත්.';
+  String get yourMedicines => 'ඔබගේ ඖෂධ.';
 
   @override
-  String get yourSupport => 'ඔයාගෙ උදව්ව.';
+  String get yourSupport => 'ඔබගේ උපකාරය.';
 
   @override
-  String get welcomeTagline =>
-      'ඔබ වෙනුවෙන් හෝ ඔබ ගැන සැලකිලිමත් වන අයෙකු සඳහා ගිණුමක් සාදන්න.';
+  String get welcomeTagline => 'ඔබ වෙනුවෙන් හෝ ඔබ රැකබලා ගන්නා අයෙකු වෙනුවෙන් ගිණුමක් සාදන්න.';
 
   @override
   String get signUpAsPatient => 'රෝගියා ලෙස ලියාපදිංචි වන්න';
@@ -31,10 +30,10 @@ class AppLocalizationsSi extends AppLocalizations {
   String get signIn => 'පිවිසෙන්න';
 
   @override
-  String get exploreDemo => 'Demo එක ගවේෂණය කරන්න';
+  String get exploreDemo => 'Demo ගිණුම බලන්න';
 
   @override
-  String get selectLanguage => 'භාෂාව තෝරන්න/භ් ‍ රමණය වන්න';
+  String get selectLanguage => 'භාෂාව තෝරන්න / Select Language';
 
   @override
   String get taken => 'ගන්නා ලදී';
@@ -52,13 +51,13 @@ class AppLocalizationsSi extends AppLocalizations {
   String get addMedicine => 'බෙහෙතක් එකතු කරන්න';
 
   @override
-  String get scanMedicineLabel => 'බෙහෙත් ලේබලය scan කරන්න';
+  String get scanMedicineLabel => 'බෙහෙත් ලේබලය ස්කෑන් කරන්න';
 
   @override
   String get enterManually => 'අතින් ඇතුළත් කරන්න';
 
   @override
-  String get currentStreak => 'වත්මන් අඛණ්ඩතාවය';
+  String get currentStreak => 'වත්මන් අඛණ්ඩතාව';
 
   @override
   String get saveMedicine => 'බෙහෙත සුරකින්න';
@@ -70,17 +69,16 @@ class AppLocalizationsSi extends AppLocalizations {
   String get caregiverAccountTitle => 'සත්කාරක ගිණුම';
 
   @override
-  String get createAccountTitle => 'ඔබේ ගිණුම සාදන්න';
+  String get createAccountTitle => 'ගිණුමක් සාදන්න';
 
   @override
-  String get accountDetailsSubtitle =>
-      'සමහර විස්තර අපට MediCare පුද්ගලාරෝපණය කිරීමට උපකාරී වේ.';
+  String get accountDetailsSubtitle => 'MediCare පුද්ගලීකරණය කිරීමට විස්තර කිහිපයක් උපකාරී වේ.';
 
   @override
-  String get fullNameLabel => 'සම්පුර්ණ නම';
+  String get fullNameLabel => 'සම්පූර්ණ නම';
 
   @override
-  String get fullNameHint => 'ඔබේ සම්පූර්ණ නම';
+  String get fullNameHint => 'ඔබගේ සම්පූර්ණ නම';
 
   @override
   String get ageLabel => 'වයස';
@@ -95,23 +93,22 @@ class AppLocalizationsSi extends AppLocalizations {
   String get phoneNumberHint => '+94 77 123 4567';
 
   @override
-  String get emailOptionalLabel => 'විද් ‍ යුත් තැපෑල (අත් ‍ යවශ් ‍ ය නොවේ)';
+  String get emailOptionalLabel => 'විද්‍යුත් තැපෑල (අත්‍යවශ්‍ය නොවේ)';
 
   @override
   String get emailOptionalHint => 'you@example.com';
 
   @override
-  String get addEmergencyContact =>
-      'හදිසි සබඳතා එක් කරන්න (අත් ‍ යවශ් ‍ ය නොවේ)';
+  String get addEmergencyContact => 'හදිසි ඇමතුම් අංකයක් එක් කරන්න (අත්‍යවශ්‍ය නොවේ)';
 
   @override
-  String get contactNameLabel => 'සබඳතා නම';
+  String get contactNameLabel => 'සම්බන්ධ කරගත යුතු පුද්ගලයාගේ නම';
 
   @override
   String get contactNameHint => 'නම';
 
   @override
-  String get contactPhoneLabel => 'දුරකථනයෙන් සම්බන්ධ වන්න';
+  String get contactPhoneLabel => 'සම්බන්ධතා දුරකථන අංකය';
 
   @override
   String get reminderPreferencesTitle => 'සිහිකැඳවීම් මනාප';
@@ -123,32 +120,31 @@ class AppLocalizationsSi extends AppLocalizations {
   String get vibrationLabel => 'කම්පනය';
 
   @override
-  String get reminderStyleLabel => 'සිහිකැඳවීමේ ශෛලිය';
+  String get reminderStyleLabel => 'සිහිකැඳවීමේ ක්‍රමය';
 
   @override
   String get gentleReminder => 'මෘදු සිහිකැඳවීම';
 
   @override
-  String get persistentReminder => 'නොනවතින සිහිකැඳවීම';
+  String get persistentReminder => 'නොනවත්වා සිහිකැඳවීම';
 
   @override
-  String get silentReminder => 'නිශ්ශබ්ද සිහිකැඳවීම';
+  String get silentReminder => 'නිහඬ සිහිකැඳවීම';
 
   @override
-  String get sendVerificationCode => 'සත්යාපන කේතයක් යවන්න';
+  String get sendVerificationCode => 'තහවුරු කිරීමේ කේතයක් එවන්න';
 
   @override
-  String get backButton => 'පසු පසට';
+  String get backButton => 'ආපසු';
 
   @override
   String get caregiverMode => 'රැකබලා ගන්නා';
 
   @override
-  String get goodMorning => '- හම් - මෙයාලට විරුද්දව ලිව්වද ?';
+  String get goodMorning => 'සුභ උදෑසනක්';
 
   @override
-  String get noMedicinesAdded =>
-      'තවම කිසිම බෙහෙතක් හදලා නැහැ. එකක් එක් කිරීමට + ටැප් කරන්න.';
+  String get noMedicinesAdded => 'තවම බෙහෙත් කිසිවක් එක් කර නැත. බෙහෙතක් එක් කිරීමට + ඔබන්න.';
 
   @override
   String streakDaysCount(int count) {
@@ -159,21 +155,19 @@ class AppLocalizationsSi extends AppLocalizations {
   String get pillCalendarTitle => 'පෙති දින දර්ශනය';
 
   @override
-  String get pillCalendarSubtitle =>
-      'ඔබේ ප් රගතිය පිළිබඳ පැහැදිලි අවබෝධයක් ලබා ගන්න.';
+  String get pillCalendarSubtitle => 'ඔබේ දෛනික ප්‍රගතිය පිළිබඳ පැහැදිලි සටහනක්.';
 
   @override
-  String get detailsPlaceholder => 'විස්තර මෙතැනට යන්න';
+  String get detailsPlaceholder => 'විස්තර මෙතැනට';
 
   @override
-  String get statusLate => 'පරක්කුයි.';
+  String get statusLate => 'ප්‍රමාදයි';
 
   @override
   String get statusMissed => 'මඟහැරුණු';
 
   @override
-  String get signInSubtitle =>
-      'ඔබේ ඖෂධ කාලසටහන් සහ රැකබලා ගන්නන්ගේ සබැඳි සමමුහුර්ත කිරීමට පිවිසෙන්න.';
+  String get signInSubtitle => 'ඔබේ ඖෂධ කාලසටහන් සහ රැකබලා ගන්නන්ගේ සම්බන්ධතා ලබා ගැනීමට පිවිසෙන්න.';
 
   @override
   String get signInWithDemo => 'Demo ගිණුමෙන් පිවිසෙන්න';
@@ -182,10 +176,10 @@ class AppLocalizationsSi extends AppLocalizations {
   String get welcomeBackTitle => 'නැවතත් සාදරයෙන් පිළිගනිමු';
 
   @override
-  String get signInPhoneTitle => 'ඔබගේ දුරකථනයෙන් පිවිසෙන්න';
+  String get signInPhoneTitle => 'ඔබගේ දුරකථන අංකයෙන් පිවිසෙන්න';
 
   @override
-  String get signInPhoneSubtitle => 'අපි ආරක්ෂිත සත් ‍ යාපන කේතයක් එවන්නෙමු.';
+  String get signInPhoneSubtitle => 'අපි ආරක්ෂිත සත්‍යාපන කේතයක් එවන්නෙමු.';
 
   @override
   String get patientViewSubtitle => 'රෝගියාගේ දර්ශනය';
@@ -194,7 +188,7 @@ class AppLocalizationsSi extends AppLocalizations {
   String get signOutButton => 'ඉවත් වන්න';
 
   @override
-  String get testReminderButton => 'පරීක්ෂණ සිහිකැඳවීම';
+  String get testReminderButton => 'සිහිකැඳවීම පරීක්ෂා කරන්න';
 
   @override
   String goodMorningName(String name) {
@@ -202,43 +196,137 @@ class AppLocalizationsSi extends AppLocalizations {
   }
 
   @override
-  String get addMedicineSubtitle => 'වෛද් ‍ ය ලේබලය මත ඔබේ කැමරාව යොමු කරන්න.';
+  String get addMedicineSubtitle => 'ඔබේ කැමරාව බෙහෙත් ලේබලයට යොමු කරන්න.';
 
   @override
-  String get scanMedicineLabelSubtitle => 'අපි ඔබ වෙනුවෙන් විස්තර පුරවන්නෙමු';
+  String get scanMedicineLabelSubtitle => 'අපි ඔබ වෙනුවෙන් විස්තර සම්පූර්ණ කරන්නෙමු';
 
   @override
   String get orText => 'හෝ';
 
   @override
-  String get addMedicineTip =>
-      'ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෝතලය තබන්න.';
+  String get addMedicineTip => 'ඉඟිය: හොඳ ආලෝකයක් සහිත පැතලි මතුපිටක් මත බෙහෙත් බෝතලය තබන්න.';
 
   @override
-  String get backToScan => 'ස්කෑන් කිරීම වෙත ආපසු යන්න';
+  String get backToScan => 'නැවත ස්කෑන් කරන්න';
 
   @override
-  String get scanComplete => 'ස්කෑන් කිරීම සම්පූර්ණයි';
+  String get scanComplete => 'ස්කෑන් කිරීම සාර්ථකයි';
 
   @override
   String get checkDetailsTitle => 'විස්තර පරීක්ෂා කරන්න';
 
   @override
-  String get checkDetailsSubtitle =>
-      'සෑම දෙයක්ම ඔබේ ලේබලයට ගැලපෙන බවට වග බලා ගන්න.';
+  String get checkDetailsSubtitle => 'සියලු විස්තර ලේබලය සමඟ නිවැරදිදැයි තහවුරු කරගන්න.';
 
   @override
-  String get medicineNameLabel => 'වෛද් ‍ ය විද් ‍ යාවේ නම';
+  String get medicineNameLabel => 'බෙහෙතේ නම';
 
   @override
-  String get dosageLabel => 'matrawa';
+  String get dosageLabel => 'මාත්‍රාව';
 
   @override
-  String get frequencyLabel => 'නිතරම කනවද?';
+  String get frequencyLabel => 'කොපමණ වාර ගණනක්ද?';
 
   @override
   String get instructionsLabel => 'උපදෙස්';
 
   @override
-  String get allTakenTitle => 'සියල්ල ගෙන ඇත';
+  String get allTakenTitle => 'සියල්ල ගෙන අවසන්';
+
+  @override
+  String get navToday => 'අද';
+
+  @override
+  String get navCalendar => 'දින දර්ශනය';
+
+  @override
+  String get navAdd => 'එක් කරන්න';
+
+  @override
+  String get navMedicines => 'බෙහෙත්';
+
+  @override
+  String get navCare => 'සත්කාර';
+
+  @override
+  String get caregiverView => 'සත්කාරක දර්ශනය';
+
+  @override
+  String get peopleYouCareFor => 'ඔබ රැකබලා ගන්නා පුද්ගලයින්';
+
+  @override
+  String get sevenDayAdherence => 'දින 7ක අනුකූලතාව';
+
+  @override
+  String get needAttention => 'අවධානය අවශ්‍යයි';
+
+  @override
+  String get allGood => 'සියල්ල යහපත්';
+
+  @override
+  String get linkedPatients => 'සම්බන්ධිත රෝගීන්';
+
+  @override
+  String get linkPatient => 'රෝගියා සම්බන්ධ කරන්න';
+
+  @override
+  String get noPatientsLinked => 'තවම රෝගීන් සම්බන්ධ කර නැත';
+
+  @override
+  String get linkCaregiverTitle => 'රැකබලා ගන්නා සම්බන්ධ කරන්න';
+
+  @override
+  String get familyAccessTitle => 'පවුලේ සහ රැකබලා ගන්නන්ගේ ප්‍රවේශය';
+
+  @override
+  String get familyAccessDesc => 'ඔබ බෙහෙත් ගන්නා වේලාවන් දැක ගැනීමට ඔබේ පවුලේ අයට හෝ වෛද්‍යවරයාට එක් වරක් භාවිත කළ හැකි ආරාධනා කේතයක් දෙන්න.';
+
+  @override
+  String get oneTimeInviteCode => 'එක් වරක් භාවිත කරන ආරාධනා කේතය';
+
+  @override
+  String get generateCode => 'කේතය සාදන්න';
+
+  @override
+  String get codeExpiresIn => 'කේතය පැය 24කින් කල් ඉකුත් වේ';
+
+  @override
+  String get linkedCaregiversTitle => 'සම්බන්ධිත රැකබලා ගන්නන්';
+
+  @override
+  String get noCaregiversLinked => 'තවම රැකබලා ගන්නන් සම්බන්ධ කර නැත';
+
+  @override
+  String get unlink => 'ඉවත් කරන්න';
+
+  @override
+  String get cancel => 'අවලංගු කරන්න';
+
+  @override
+  String get addedMedicinesTitle => 'එකතු කළ බෙහෙත්';
+
+  @override
+  String get morning => 'උදෑසන';
+
+  @override
+  String get evening => 'සවස';
+
+  @override
+  String get night => 'රාත්‍රිය';
+
+  @override
+  String get whenToTake => 'ගත යුතු වේලාව';
+
+  @override
+  String get saving => 'සුරකිමින් පවතී...';
+
+  @override
+  String get exit => 'පිටවීම';
+
+  @override
+  String get manualEntry => 'අතින් ඇතුළත් කිරීම';
+
+  @override
+  String get manualEntrySubtitle => 'බෙහෙතේ විස්තර සහ වේලාවන් පහතින් සටහන් කරන්න.';
 }

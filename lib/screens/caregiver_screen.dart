@@ -675,10 +675,10 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    const Text(
-                                      'Caregiver view',
+                                    Text(
+                                      l10n?.caregiverView ?? 'Caregiver view',
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
                                         color: Color(0xFF9FB2BF),
@@ -724,9 +724,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 const SizedBox(height: 4),
 
                 // Main Title
-                const Text(
-                  'People you care for',
-                  style: TextStyle(
+                Text(
+                  l10n?.peopleYouCareFor ?? 'People you care for',
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textDark,
@@ -762,9 +762,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
-                              '7-day adherence',
-                              style: TextStyle(
+                            Text(
+                              l10n?.sevenDayAdherence ?? '7-day adherence',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textDark,
@@ -806,7 +806,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              _needsAttentionCount == 0 ? 'All good' : 'Need attention',
+                              _needsAttentionCount == 0
+                                  ? (l10n?.allGood ?? 'All good')
+                                  : (l10n?.needAttention ?? 'Need attention'),
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -825,9 +827,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Linked patients',
-                      style: TextStyle(
+                    Text(
+                      l10n?.linkedPatients ?? 'Linked patients',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textDark,
@@ -837,7 +839,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     TextButton.icon(
                       onPressed: () => _openLinkPatientDialog(context),
                       icon: const Icon(Icons.person_add_alt_1, size: 18),
-                      label: const Text('Link patient'),
+                      label: Text(l10n?.linkPatient ?? 'Link patient'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.brandTeal,
                         textStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -878,9 +880,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           child: const Icon(Icons.people_outline, color: AppColors.brandTeal, size: 28),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'No patients linked yet',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                        Text(
+                          l10n?.noPatientsLinked ?? 'No patients linked yet',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
                         ),
                         const SizedBox(height: 6),
                         const Text(
@@ -892,7 +894,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                         ElevatedButton.icon(
                           onPressed: () => _openLinkPatientDialog(context),
                           icon: const Icon(Icons.person_add_alt_1, size: 18),
-                          label: const Text('Link a Patient'),
+                          label: Text(l10n?.linkPatient ?? 'Link a Patient'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.brandTeal,
                             foregroundColor: Colors.white,

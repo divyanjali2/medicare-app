@@ -18,8 +18,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get yourSupport => 'Your support.';
 
   @override
-  String get welcomeTagline =>
-      'Create an account for yourself or someone you care for.';
+  String get welcomeTagline => 'Create an account for yourself or someone you care for.';
 
   @override
   String get signUpAsPatient => 'Sign up as Patient';
@@ -73,8 +72,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAccountTitle => 'Create your account';
 
   @override
-  String get accountDetailsSubtitle =>
-      'A few details help us personalize MediCare.';
+  String get accountDetailsSubtitle => 'A few details help us personalize MediCare.';
 
   @override
   String get fullNameLabel => 'Full name';
@@ -169,8 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statusMissed => 'Missed';
 
   @override
-  String get signInSubtitle =>
-      'Sign in to sync your medication schedules and caregiver links.';
+  String get signInSubtitle => 'Sign in to sync your medication schedules and caregiver links.';
 
   @override
   String get signInWithDemo => 'Sign in with demo account';
@@ -208,8 +205,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get orText => 'or';
 
   @override
-  String get addMedicineTip =>
-      'Tip: Place the bottle on a flat surface with good lighting.';
+  String get addMedicineTip => 'Tip: Place the bottle on a flat surface with good lighting.';
 
   @override
   String get backToScan => 'Back to scan';
@@ -237,4 +233,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allTakenTitle => 'All taken';
+
+  @override
+  String get navToday => 'Today';
+
+  @override
+  String get navCalendar => 'Calendar';
+
+  @override
+  String get navAdd => 'Add';
+
+  @override
+  String get navMedicines => 'Medicines';
+
+  @override
+  String get navCare => 'Care';
+
+  @override
+  String get caregiverView => 'Caregiver view';
+
+  @override
+  String get peopleYouCareFor => 'People you care for';
+
+  @override
+  String get sevenDayAdherence => '7-day adherence';
+
+  @override
+  String get needAttention => 'Need attention';
+
+  @override
+  String get allGood => 'All good';
+
+  @override
+  String get linkedPatients => 'Linked patients';
+
+  @override
+  String get linkPatient => 'Link patient';
+
+  @override
+  String get noPatientsLinked => 'No patients linked yet';
+
+  @override
+  String get linkCaregiverTitle => 'Link Caregiver';
+
+  @override
+  String get familyAccessTitle => 'Family & Caregiver Access';
+
+  @override
+  String get familyAccessDesc => 'Give a one-time invite code to your family or doctor so they can see when you take your medicines.';
+
+  @override
+  String get oneTimeInviteCode => 'ONE-TIME INVITE CODE';
+
+  @override
+  String get generateCode => 'Generate code';
+
+  @override
+  String get codeExpiresIn => 'Code expires in 24 hours';
+
+  @override
+  String get linkedCaregiversTitle => 'LINKED CAREGIVERS';
+
+  @override
+  String get noCaregiversLinked => 'No caregivers linked yet';
+
+  @override
+  String get unlink => 'Unlink';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get addedMedicinesTitle => 'Added Medicines';
+
+  @override
+  String get morning => 'Morning';
+
+  @override
+  String get evening => 'Evening';
+
+  @override
+  String get night => 'Night';
+
+  @override
+  String get whenToTake => 'When to take (Time of day)';
+
+  @override
+  String get saving => 'Saving...';
+
+  @override
+  String get exit => 'Exit';
+
+  @override
+  String get manualEntry => 'MANUAL ENTRY';
+
+  @override
+  String get manualEntrySubtitle => 'Fill in the medication details and reminder schedule below.';
 }

@@ -467,9 +467,9 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                     if (Navigator.of(context).canPop())
                       GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Exit',
-                          style: TextStyle(
+                        child: Text(
+                          l10n?.exit ?? 'Exit',
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.brandNavy,
@@ -555,10 +555,10 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: _onTabTapped,
           items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Today',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: l10n?.navToday ?? 'Today',
             ),
             BottomNavigationBarItem(
               icon: Container(
@@ -569,16 +569,16 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                 ),
                 child: const Icon(Icons.calendar_month, color: AppColors.brandTeal),
               ),
-              label: 'Calendar',
+              label: l10n?.navCalendar ?? 'Calendar',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: 'Add',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.add),
+              label: l10n?.navAdd ?? 'Add',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Medicines',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.medication_outlined),
+              activeIcon: const Icon(Icons.medication),
+              label: l10n?.navMedicines ?? 'Medicines',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(
@@ -591,7 +591,7 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                   ),
                   child: const Icon(Icons.people, color: Color(0xFF0E7485)),
                 ),
-                label: 'Care',
+                label: l10n?.navCare ?? 'Care',
               ),
           ],
         ),

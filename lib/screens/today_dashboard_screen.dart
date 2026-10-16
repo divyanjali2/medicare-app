@@ -496,9 +496,9 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                     if (Navigator.of(context).canPop())
                       GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Exit',
-                          style: TextStyle(
+                        child: Text(
+                          l10n?.exit ?? 'Exit',
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: AppColors.brandNavy,
@@ -800,14 +800,14 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
               activeIcon: const Icon(Icons.calendar_month),
               label: l10n?.calendar ?? 'Calendar',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: 'Add',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.add),
+              label: l10n?.navAdd ?? 'Add',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Medicines',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.medication_outlined),
+              activeIcon: const Icon(Icons.medication),
+              label: l10n?.navMedicines ?? 'Medicines',
             ),
             if (_isCaregiverMode)
               BottomNavigationBarItem(
@@ -820,7 +820,7 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                   ),
                   child: const Icon(Icons.people, color: Color(0xFF0E7485)),
                 ),
-                label: 'Care',
+                label: l10n?.navCare ?? 'Care',
               ),
           ],
         ),

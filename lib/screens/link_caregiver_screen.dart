@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// Screen for patients to generate 6-character single-use invite codes
 /// and manage their linked caregivers.
@@ -126,11 +127,12 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
   }
 
   Future<void> _handleUnlinkCaregiver(UserProfile caregiver) async {
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Unlink Caregiver', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n?.unlink ?? 'Unlink Caregiver', style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(
           'Are you sure you want to remove ${caregiver.name}? They will no longer be able to view your medication adherence.',
           style: const TextStyle(fontSize: 14, height: 1.4),
@@ -138,7 +140,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -147,7 +149,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Unlink'),
+            child: Text(l10n?.unlink ?? 'Unlink'),
           ),
         ],
       ),
@@ -198,6 +200,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -208,7 +211,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Link Caregiver',
+          l10n?.linkCaregiverTitle ?? 'Link Caregiver',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -244,22 +247,23 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
                     child: const Icon(Icons.shield_outlined, color: AppColors.brandTeal, size: 24),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Family & Caregiver Access',
-                          style: TextStyle(
+                          l10n?.familyAccessTitle ?? 'Family & Caregiver Access',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textDark,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Give a one-time invite code to your family or doctor so they can see when you take your medicines.',
-                          style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.4),
+                          l10n?.familyAccessDesc ??
+                              'Give a one-time invite code to your family or doctor so they can see when you take your medicines.',
+                          style: const TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.4),
                         ),
                       ],
                     ),
@@ -272,7 +276,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
 
             // Section 1: One-Time Invite Code
             Text(
-              'ONE-TIME INVITE CODE',
+              l10n?.oneTimeInviteCode ?? 'ONE-TIME INVITE CODE',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -291,7 +295,7 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'LINKED CAREGIVERS (${_linkedCaregivers.length})',
+                  '${l10n?.linkedCaregiversTitle ?? "LINKED CAREGIVERS"} (${_linkedCaregivers.length})',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -501,9 +505,9 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text(
-                      'Generate Code',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  : Text(
+                      AppLocalizations.of(context)?.generateCode ?? 'Generate Code',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
             ),
           ),
@@ -530,20 +534,20 @@ class _LinkCaregiverScreenState extends State<LinkCaregiverScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderSubtle),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.people_outline, size: 44, color: AppColors.textMuted),
-            SizedBox(height: 10),
+            const Icon(Icons.people_outline, size: 44, color: AppColors.textMuted),
+            const SizedBox(height: 10),
             Text(
-              'No Caregivers Linked Yet',
-              style: TextStyle(
+              AppLocalizations.of(context)?.noCaregiversLinked ?? 'No Caregivers Linked Yet',
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
               ),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'Generate an invite code above to link your family member or caregiver.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textMuted),
