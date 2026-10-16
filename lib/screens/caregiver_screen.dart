@@ -11,10 +11,8 @@ import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
-import 'add_medicine_screen.dart';
-import 'pill_calendar_screen.dart';
-import 'today_dashboard_screen.dart';
-import 'patient_medicines_screen.dart';
+import '../widgets/role_gate.dart';
+import 'patient_detail_screen.dart';
 
 class _PatientCardData {
   final UserProfile profile;
@@ -58,6 +56,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
   bool _isLoadingPatients = true;
   int _overallAdherence = 100;
   int _needsAttentionCount = 0;
+  int _currentNavIndex = 0;
 
   @override
   void initState() {
@@ -395,23 +394,11 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     );
   }
 
-  void _openPatientDashboard(BuildContext context, UserProfile patient) {
+  void _openPatientDetail(BuildContext context, UserProfile patient) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TodayDashboardScreen(
-          viewingPatientId: patient.uid,
-          viewingPatientName: patient.name,
-        ),
-      ),
-    ).then((_) => _loadLinkedPatients());
-  }
-
-  void _openPatientMedicines(BuildContext context, UserProfile patient) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PatientMedicinesScreen(
-          viewingPatientId: patient.uid,
-          viewingPatientName: patient.name,
+        builder: (_) => PatientDetailScreen(
+          patient: patient,
         ),
       ),
     ).then((_) => _loadLinkedPatients());
@@ -566,38 +553,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFBE5C8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.check_circle_outline,
-                      color: Color(0xFF8C581E),
-                    ),
-                  ),
-                  title: const Text(
-                    'Mark dose as assisted',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  subtitle: const Text('Confirm patient took their dose with you'),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Dose marked as taken with $patientName.'),
-                        backgroundColor: const Color(0xFF2E7D4E),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
+
                 const SizedBox(height: 12),
               ],
             ),
@@ -709,7 +665,56 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
 
           // Main Content
           Expanded(
-            child: ListView(
+            child: switch (_currentNavIndex) {
+              0 => _buildPatientsView(todayStr, l10n),
+              1 => _buildAlertsView(l10n),
+              2 => _buildSettingsView(l10n),
+              _ => _buildPatientsView(todayStr, l10n),
+            },
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.borderSubtle)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentNavIndex,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.brandTeal,
+          unselectedItemColor: AppColors.textMuted,
+          backgroundColor: Colors.white,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
+          onTap: (index) {
+            setState(() => _currentNavIndex = index);
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people, color: AppColors.brandTeal),
+              label: 'Patients',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.notifications_outlined),
+              activeIcon: Icon(Icons.notifications, color: AppColors.brandTeal),
+              label: 'Alerts',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings, color: AppColors.brandTeal),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatientsView(String todayStr, AppLocalizations? l10n) {
+    return ListView(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               children: [
                 // Date Heading
@@ -933,7 +938,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                           borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
-                            onTap: () => _openPatientDashboard(context, patient),
+                            onTap: () => _openPatientDetail(context, patient),
                             child: Padding(
                               padding: const EdgeInsets.all(18),
                               child: Column(
@@ -1025,10 +1030,8 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         onSelected: (value) {
-                                          if (value == 'schedule') {
-                                            _openPatientDashboard(context, patient);
-                                          } else if (value == 'medicines') {
-                                            _openPatientMedicines(context, patient);
+                                          if (value == 'detail') {
+                                            _openPatientDetail(context, patient);
                                           } else if (value == 'checkin') {
                                             _openCheckInSheet(context, patient.name);
                                           } else if (value == 'unlink') {
@@ -1037,22 +1040,12 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         },
                                         itemBuilder: (ctx) => [
                                           const PopupMenuItem(
-                                            value: 'schedule',
+                                            value: 'detail',
                                             child: Row(
                                               children: [
                                                 Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.brandTeal),
                                                 SizedBox(width: 8),
-                                                Text('View Schedule'),
-                                              ],
-                                            ),
-                                          ),
-                                          const PopupMenuItem(
-                                            value: 'medicines',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.medication_outlined, size: 18, color: Color(0xFF2E7D4E)),
-                                                SizedBox(width: 8),
-                                                Text('View Medicines'),
+                                                Text('Calendar & Doses'),
                                               ],
                                             ),
                                           ),
@@ -1188,29 +1181,12 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                     children: [
                                       Expanded(
                                         child: ElevatedButton.icon(
-                                          onPressed: () => _openPatientDashboard(context, patient),
+                                          onPressed: () => _openPatientDetail(context, patient),
                                           icon: const Icon(Icons.calendar_month, size: 16),
-                                          label: const Text('Schedule'),
+                                          label: const Text('Calendar & Doses'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.brandTeal,
                                             foregroundColor: Colors.white,
-                                            elevation: 0,
-                                            padding: const EdgeInsets.symmetric(vertical: 10),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: () => _openPatientMedicines(context, patient),
-                                          icon: const Icon(Icons.medication_outlined, size: 16),
-                                          label: const Text('Meds'),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: AppColors.brandTeal,
-                                            side: const BorderSide(color: AppColors.brandTeal),
                                             elevation: 0,
                                             padding: const EdgeInsets.symmetric(vertical: 10),
                                             shape: RoundedRectangleBorder(
@@ -1227,7 +1203,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: const Color(0xFF2E7D4E),
                                           side: const BorderSide(color: Color(0xFF2E7D4E)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
                                           ),
@@ -1244,101 +1220,189 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     },
                   ),
               ],
-            ),
+            );
+  }
+
+  Widget _buildAlertsView(AppLocalizations? l10n) {
+    final attentionPatients = _patientCards.where((c) => c.needsAttention || c.todayMissed > 0).toList();
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Text(
+          'Care Alerts',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark,
           ),
-        ],
-      ),
-
-      // Bottom Navigation Bar matching design with zero overflow (Calendar, Add, Meds, Care)
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: 3,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.brandTeal,
-          unselectedItemColor: AppColors.textMuted,
-          backgroundColor: Colors.white,
-          showSelectedLabels: true,
-          showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-          onTap: (index) {
-            if (index == 3) return;
-            final String? primaryPatientId = _patientCards.isNotEmpty ? _patientCards.first.profile.uid : null;
-            final String? primaryPatientName = _patientCards.isNotEmpty ? _patientCards.first.profile.name : null;
-
-            Widget nextScreen;
-            if (index == 0) {
-              nextScreen = PillCalendarScreen(
-                viewingPatientId: primaryPatientId,
-                viewingPatientName: primaryPatientName,
-              );
-            } else if (index == 1) {
-              nextScreen = AddMedicineScreen(
-                patientId: primaryPatientId,
-                patientName: primaryPatientName,
-              );
-            } else if (index == 2) {
-              nextScreen = PatientMedicinesScreen(
-                viewingPatientId: primaryPatientId,
-                viewingPatientName: primaryPatientName,
-              );
-            } else {
-              return;
-            }
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              Navigator.of(context).pushReplacement(
-                PageRouteBuilder(
-                  pageBuilder: (_, __, ___) => nextScreen,
-                  transitionDuration: Duration.zero,
-                  reverseTransitionDuration: Duration.zero,
+        const SizedBox(height: 6),
+        const Text(
+          'Real-time medication adherence alerts for your linked patients.',
+          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+        ),
+        const SizedBox(height: 20),
+        if (attentionPatients.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFDCFCE7)),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 40),
+                SizedBox(height: 12),
+                Text(
+                  'All Patients On Track',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF166534),
+                  ),
                 ),
-              );
-            });
+                SizedBox(height: 4),
+                Text(
+                  'No missed or late medication doses detected for your linked patients today.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Color(0xFF15803D)),
+                ),
+              ],
+            ),
+          )
+        else
+          ...attentionPatients.map((card) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFECDD3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFE4E6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFE11D48)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          card.profile.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text(
+                          '${card.todayMissed} dose(s) missed or late today',
+                          style: const TextStyle(color: Color(0xFFBE123C), fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _openPatientDetail(context, card.profile),
+                    child: const Text('View'),
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  Widget _buildSettingsView(AppLocalizations? l10n) {
+    final profile = AuthService.instance.currentProfile;
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        const Text(
+          'Settings',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E4E8)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profile?.name ?? 'Caregiver',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                profile?.phoneNumber ?? '',
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCF0F2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Role: Caregiver (Read-Only)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0E7485),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        ListTile(
+          tileColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFFE2E4E8)),
+          ),
+          leading: const Icon(Icons.language, color: AppColors.brandTeal),
+          title: const Text('App Language', style: TextStyle(fontWeight: FontWeight.w600)),
+          trailing: const LanguagePillSelector(isDark: false),
+        ),
+        const SizedBox(height: 12),
+        ListTile(
+          tileColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: Color(0xFFE2E4E8)),
+          ),
+          leading: const Icon(Icons.logout, color: Colors.redAccent),
+          title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent)),
+          onTap: () async {
+            await AuthService.instance.signOut();
+            if (!mounted) return;
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const RoleGate()),
+              (r) => false,
+            );
           },
-          items: [
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.calendar_month_outlined),
-              activeIcon: const Icon(Icons.calendar_month),
-              label: l10n?.calendar ?? 'Calendar',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: 'Add',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Medicines',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCF0F2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF102A36), width: 1.5),
-                ),
-                child: const Icon(Icons.people_outline, color: Color(0xFF0E7485)),
-              ),
-              activeIcon: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCF0F2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF102A36), width: 1.5),
-                ),
-                child: const Icon(Icons.people, color: Color(0xFF0E7485)),
-              ),
-              label: 'Care',
-            ),
-          ],
         ),
-      ),
+      ],
     );
   }
 }

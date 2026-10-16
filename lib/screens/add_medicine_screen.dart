@@ -110,16 +110,14 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
       return;
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
-    });
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
+        transitionsBuilder: (_, __, ___, child) => child,
+      ),
+    );
   }
 
   @override

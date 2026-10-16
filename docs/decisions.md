@@ -55,6 +55,15 @@ Index number MS26926162 → digit sum 34 → 34 mod 5 = 4 → **HealthTech**.
   because no off-the-shelf component visualizes per-day adherence status
   this way. Properties and events are documented in the file header.
 
+## Caregiver permissions: Read-only access
+
+- **Decision:** Caregivers are read-only. They can view a patient's medicines, calendar and alerts but cannot add, edit, delete or log doses, so adherence data stays patient-reported and schedules cannot be changed remotely by mistake. Enforced in UI, service layer and Firestore rules.
+- **Why:** Patient adherence reports must reflect direct patient action, and medication schedules should not be altered remotely by third parties to avoid accidental changes to doctor-prescribed regimens.
+- **Enforcement Layers:**
+  1. **UI Layer:** `MedicineCard(readOnly: true)` hides Taken/Skipped buttons and presents status chips; caregiver navigation omits Add tabs and medicine editing/deletion. Patient detail view (`PatientDetailScreen`) is strictly read-only.
+  2. **Service Guard Layer:** `LocalDbService` validates the caller's role and data ownership in a shared helper (`enforcePatientWritePermission`), throwing `PermissionDeniedException` if a caregiver attempts to add, modify, or delete medicines or write dose logs.
+  3. **Firestore Security Rules:** Server-side rules (`firestore.rules`) enforce that caregivers can only read patient medicines and dose logs if linked in `linkedCaregiverIds`, and reject all write attempts.
+
 ## Failure log
 
 Record AI-assisted steps here as they happen during implementation,

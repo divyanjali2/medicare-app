@@ -7,7 +7,7 @@ import 'l10n/app_localizations.dart';
 import 'services/log_service.dart';
 import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
-import 'screens/welcome_screen.dart';
+import 'widgets/role_gate.dart';
 
 /// Entry point.
 void main() {
@@ -65,9 +65,7 @@ class _MediCareAppState extends State<MediCareApp> {
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // TODO: swap for an auth-gated root once AuthService is wired up —
-      // this currently opens straight to the patient dashboard.
-      home: const WelcomeScreen(),
+      home: const RoleGate(),
     );
   }
 }

@@ -183,6 +183,7 @@ class _DayCell extends StatelessWidget {
       case DoseStatus.taken:
         return const Color(0xFFD4EED8);
       case DoseStatus.late:
+      case DoseStatus.skipped:
         return const Color(0xFFFDE8C8);
       case DoseStatus.missed:
         return const Color(0xFFFFD7D5);
@@ -207,6 +208,7 @@ class _DayCell extends StatelessWidget {
     final statusLabel = switch (status) {
       DoseStatus.taken => 'taken',
       DoseStatus.late => 'late',
+      DoseStatus.skipped => 'skipped',
       DoseStatus.missed => 'missed',
       DoseStatus.pending => 'pending',
       null => 'no doses',

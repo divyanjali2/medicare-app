@@ -11,8 +11,7 @@ import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
-import 'add_medicine_screen.dart';
-import 'patient_medicines_screen.dart';
+import '../widgets/medicines_modal.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/local_db_service.dart';
@@ -75,6 +74,9 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
     if (profile?.role == UserRole.caregiver) {
       caregiverMode = true;
       if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+        patientId = profile.linkedPatientIds.first;
+      }
+      if (profile!.linkedPatientIds.isNotEmpty && !profile.linkedPatientIds.contains(patientId)) {
         patientId = profile.linkedPatientIds.first;
       }
     }
@@ -315,38 +317,44 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
-    Widget nextScreen;
-    if (index == 0) {
-      nextScreen = TodayDashboardScreen(
-        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-        viewingPatientName: _isCaregiverMode ? _patientName : null,
+    if (index == 2) {
+      showMedicinesModal(
+        context: context,
+        patientId: _effectivePatientId,
+        patientName: _patientName,
+        isCaregiver: _isCaregiverMode,
+        onMedicinesChanged: _loadCalendarData,
       );
-    } else if (index == 2) {
-      nextScreen = AddMedicineScreen(
-        patientId: _isCaregiverMode ? _effectivePatientId : null,
-        patientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 3) {
-      nextScreen = PatientMedicinesScreen(
-        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-        viewingPatientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 4 && _isCaregiverMode) {
-      nextScreen = const CaregiverScreen();
-    } else {
       return;
     }
+    Widget nextScreen;
+    if (_isCaregiverMode) {
+      if (index == 0) {
+        nextScreen = TodayDashboardScreen(
+          viewingPatientId: _effectivePatientId,
+          viewingPatientName: _patientName,
+        );
+      } else if (index == 3) {
+        nextScreen = const CaregiverScreen();
+      } else {
+        return;
+      }
+    } else {
+      if (index == 0) {
+        nextScreen = const TodayDashboardScreen();
+      } else {
+        return;
+      }
+    }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
-    });
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
+        transitionsBuilder: (_, __, ___, child) => child,
+      ),
+    );
   }
 
   @override
@@ -530,6 +538,15 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                       day: _selectedDay!,
                       doses: _getDosesForDay(_selectedDay!),
                       onTakeDose: _markDoseTaken,
+                      onMedicineTap: (med) {
+                        showMedicineDetailModal(
+                          context: context,
+                          medicine: med,
+                          isCaregiver: _isCaregiverMode,
+                          patientId: _effectivePatientId,
+                          onChanged: _loadCalendarData,
+                        );
+                      },
                       isCaregiverMode: _isCaregiverMode,
                     ),
                   const SizedBox(height: 32),
@@ -572,10 +589,6 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
               label: l10n?.navCalendar ?? 'Calendar',
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.add),
-              label: l10n?.navAdd ?? 'Add',
-            ),
-            BottomNavigationBarItem(
               icon: const Icon(Icons.medication_outlined),
               activeIcon: const Icon(Icons.medication),
               label: l10n?.navMedicines ?? 'Medicines',
@@ -604,12 +617,14 @@ class _DayDetailPanel extends StatelessWidget {
   final DateTime day;
   final List<_CalendarDayDose> doses;
   final ValueChanged<_CalendarDayDose> onTakeDose;
+  final ValueChanged<Medicine>? onMedicineTap;
   final bool isCaregiverMode;
 
   const _DayDetailPanel({
     required this.day,
     required this.doses,
     required this.onTakeDose,
+    this.onMedicineTap,
     required this.isCaregiverMode,
   });
 
@@ -703,6 +718,11 @@ class _DayDetailPanel extends StatelessWidget {
         iconBg = AppColors.statusLate;
         icon = Icons.done_all;
         break;
+      case DoseStatus.skipped:
+        title = 'Dose skipped';
+        iconBg = AppColors.statusLate;
+        icon = Icons.skip_next;
+        break;
       case DoseStatus.missed:
         title = 'Doses missed';
         iconBg = AppColors.statusMissed;
@@ -751,13 +771,16 @@ class _DayDetailPanel extends StatelessWidget {
   Widget _buildDoseRow(BuildContext context, _CalendarDayDose dose) {
     final timeStr = DateFormat('h:mm a').format(dose.scheduledFor);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEFECE6)),
-      ),
+    return InkWell(
+      onTap: () => onMedicineTap?.call(dose.medicine),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEFECE6)),
+        ),
       child: Row(
         children: [
           Container(
@@ -814,7 +837,8 @@ class _DayDetailPanel extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildStatusAction(_CalendarDayDose dose) {
@@ -852,6 +876,24 @@ class _DayDetailPanel extends StatelessWidget {
         ),
         child: const Text(
           'Late',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8B4D00),
+          ),
+        ),
+      );
+    }
+
+    if (dose.status == DoseStatus.skipped) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.statusLate.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Skipped',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,

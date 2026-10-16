@@ -6,11 +6,10 @@ import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
-import 'caregiver_screen.dart';
+import '../widgets/role_gate.dart';
 import 'caregiver_signup_screen.dart';
 import 'patient_signup_screen.dart';
 import 'sign_in_screen.dart';
-import 'today_dashboard_screen.dart';
 
 /// Screen 0 — Welcome / Landing Screen.
 /// with instant offline English and Sinhala support.
@@ -35,17 +34,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (user != null) {
       final profile = await AuthService.instance.fetchCurrentUserProfile(user.uid);
       if (!mounted) return;
-      if (profile?.role == UserRole.caregiver) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-        );
-        return;
-      } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => TodayDashboardScreen(initialProfile: profile)),
-        );
-        return;
-      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => RoleGate.getHomeScreenForRole(profile)),
+      );
+      return;
     }
     if (mounted) {
       setState(() => _isCheckingSession = false);
@@ -299,20 +291,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 class _ActionPillButton extends StatelessWidget {
   final String title;
   final IconData leadingIcon;
-  final IconData? trailingIcon;
   final Color backgroundColor;
   final Color foregroundColor;
-  final Color? borderColor;
   final bool centerContent;
   final VoidCallback onTap;
 
   const _ActionPillButton({
     required this.title,
     required this.leadingIcon,
-    this.trailingIcon,
     required this.backgroundColor,
     required this.foregroundColor,
-    this.borderColor,
     this.centerContent = false,
     required this.onTap,
   });
@@ -329,9 +317,6 @@ class _ActionPillButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(30),
-            border: borderColor != null
-                ? Border.all(color: borderColor!, width: 1.2)
-                : null,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -367,8 +352,6 @@ class _ActionPillButton extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (trailingIcon != null)
-                        Icon(trailingIcon, color: foregroundColor, size: 22),
                     ],
                   ),
           ),
@@ -532,84 +515,5 @@ class _PulseHeartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PulseHeartPainter oldDelegate) =>
-      oldDelegate.color != color;
-}
-
-/// Shield with checkmark icon
-class _ShieldCheckIcon extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _ShieldCheckIcon({
-    required this.size,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _ShieldCheckPainter(color: color),
-      ),
-    );
-  }
-}
-
-class _ShieldCheckPainter extends CustomPainter {
-  final Color color;
-
-  _ShieldCheckPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final w = size.width;
-    final h = size.height;
-
-    // Shield path
-    final shieldPath = Path();
-    shieldPath.moveTo(w * 0.5, h * 0.15);
-    shieldPath.lineTo(w * 0.82, h * 0.28);
-    shieldPath.lineTo(w * 0.82, h * 0.56);
-    shieldPath.cubicTo(
-      w * 0.82,
-      h * 0.76,
-      w * 0.65,
-      h * 0.88,
-      w * 0.50,
-      h * 0.92,
-    );
-    shieldPath.cubicTo(
-      w * 0.35,
-      h * 0.88,
-      w * 0.18,
-      h * 0.76,
-      w * 0.18,
-      h * 0.56,
-    );
-    shieldPath.lineTo(w * 0.18, h * 0.28);
-    shieldPath.close();
-
-    canvas.drawPath(shieldPath, strokePaint);
-
-    // Checkmark inside shield
-    final checkPath = Path();
-    checkPath.moveTo(w * 0.36, h * 0.53);
-    checkPath.lineTo(w * 0.46, h * 0.63);
-    checkPath.lineTo(w * 0.66, h * 0.43);
-
-    canvas.drawPath(checkPath, strokePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShieldCheckPainter oldDelegate) =>
       oldDelegate.color != color;
 }

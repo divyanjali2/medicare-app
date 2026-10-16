@@ -30,7 +30,7 @@ class PatientMedicinesScreen extends StatefulWidget {
 }
 
 class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
-  final int _currentIndex = 3; // Medicines tab (next to Add)
+  int get _currentIndex => _isCaregiverMode ? 2 : 3; // Medicines tab
   bool _isLoading = true;
   List<Medicine> _medicines = [];
   String _effectivePatientId = 'p1';
@@ -210,37 +210,42 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
     Widget nextScreen;
-    if (index == 0) {
-      nextScreen = TodayDashboardScreen(
-        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-        viewingPatientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 1) {
-      nextScreen = PillCalendarScreen(
-        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-        viewingPatientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 2) {
-      nextScreen = AddMedicineScreen(
-        patientId: _isCaregiverMode ? _effectivePatientId : null,
-        patientName: _isCaregiverMode ? _patientName : null,
-      );
-    } else if (index == 4 && _isCaregiverMode) {
-      nextScreen = const CaregiverScreen();
+    if (_isCaregiverMode) {
+      if (index == 0) {
+        nextScreen = TodayDashboardScreen(
+          viewingPatientId: _effectivePatientId,
+          viewingPatientName: _patientName,
+        );
+      } else if (index == 1) {
+        nextScreen = PillCalendarScreen(
+          viewingPatientId: _effectivePatientId,
+          viewingPatientName: _patientName,
+        );
+      } else if (index == 3) {
+        nextScreen = const CaregiverScreen();
+      } else {
+        return;
+      }
     } else {
-      return;
+      if (index == 0) {
+        nextScreen = const TodayDashboardScreen();
+      } else if (index == 1) {
+        nextScreen = const PillCalendarScreen();
+      } else if (index == 2) {
+        nextScreen = const AddMedicineScreen();
+      } else {
+        return;
+      }
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => nextScreen,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
-    });
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
+        transitionsBuilder: (_, __, ___, child) => child,
+      ),
+    );
   }
 
   @override
@@ -378,7 +383,8 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                       ),
                     )
                   : ListView(
-                      physics: const ClampingScrollPhysics(),
+                      key: const PageStorageKey('medicines_list_view'),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       children: [
                         Row(
@@ -416,30 +422,32 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                                   onPressed: _loadAllMedicines,
                                   tooltip: 'Refresh',
                                 ),
-                                const SizedBox(width: 4),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => AddMedicineScreen(
-                                          patientId: _isCaregiverMode ? _effectivePatientId : null,
-                                          patientName: _isCaregiverMode ? _patientName : null,
+                                if (!_isCaregiverMode) ...[
+                                  const SizedBox(width: 4),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => AddMedicineScreen(
+                                            patientId: _isCaregiverMode ? _effectivePatientId : null,
+                                            patientName: _isCaregiverMode ? _patientName : null,
+                                          ),
                                         ),
+                                      ).then((_) => _loadAllMedicines());
+                                    },
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text('Add'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.brandTeal,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
                                       ),
-                                    ).then((_) => _loadAllMedicines());
-                                  },
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Add'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.brandTeal,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      elevation: 0,
                                     ),
-                                    elevation: 0,
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ],
@@ -503,7 +511,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
           border: Border(top: BorderSide(color: AppColors.borderSubtle)),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
+          currentIndex: _isCaregiverMode ? 2 : 3,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.brandTeal,
           unselectedItemColor: AppColors.textMuted,
@@ -524,10 +532,11 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
               activeIcon: const Icon(Icons.calendar_month),
               label: l10n?.navCalendar ?? 'Calendar',
             ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.add),
-              label: l10n?.navAdd ?? 'Add',
-            ),
+            if (!_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.add),
+                label: l10n?.navAdd ?? 'Add',
+              ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.medication_outlined),
               activeIcon: Container(
@@ -651,11 +660,12 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                     ],
                   ),
                 ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 20),
-                onPressed: () => _deleteMedicine(med),
-                tooltip: 'Remove',
-              ),
+              if (!_isCaregiverMode)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 20),
+                  onPressed: () => _deleteMedicine(med),
+                  tooltip: 'Remove',
+                ),
             ],
           ),
           const SizedBox(height: 12),

@@ -9,13 +9,13 @@ import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/medicines_modal.dart';
 import '../widgets/profile_menu_button.dart';
 import '../l10n/app_localizations.dart';
 import 'add_medicine_screen.dart';
 import 'caregiver_screen.dart';
 import 'link_caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
-import 'patient_medicines_screen.dart';
 
 /// Screen 1 — Today / Home Dashboard (patient view).
 /// Fetches patient medication schedule and adherence metrics directly
@@ -603,8 +603,7 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        TextButton.icon(
+                        IconButton(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -627,14 +626,9 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.notifications_none, size: 18),
-                          label: Text(
-                            l10n?.testReminderButton ?? 'Test reminder',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.brandTeal,
-                          ),
+                          icon: const Icon(Icons.notifications_none, size: 22),
+                          color: AppColors.brandTeal,
+                          tooltip: l10n?.testReminderButton ?? 'Remind!!',
                         ),
                       ],
                     ),
@@ -690,22 +684,24 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                                 color: AppColors.textMuted,
                               ),
                             ),
-                            const SizedBox(height: 18),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
-                                ).then((_) => _loadDashboardData());
-                              },
-                              icon: const Icon(Icons.add, size: 18),
-                              label: Text(l10n?.addMedicine ?? 'Add a medicine'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.brandTeal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            if (!_isCaregiverMode) ...[
+                              const SizedBox(height: 18),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
+                                  ).then((_) => _loadDashboardData());
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: Text(l10n?.addMedicine ?? 'Add a medicine'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.brandTeal,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       )
@@ -715,8 +711,18 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
                           medicine: d.medicine,
                           doseTime: d.time,
                           status: d.status,
-                          onTaken: () => _updateStatus(d, DoseStatus.taken),
-                          onSkipped: () => _updateStatus(d, DoseStatus.late),
+                          readOnly: _isCaregiverMode,
+                          onTap: () {
+                            showMedicineDetailModal(
+                              context: context,
+                              medicine: d.medicine,
+                              isCaregiver: _isCaregiverMode,
+                              patientId: _effectivePatientId,
+                              onChanged: _loadDashboardData,
+                            );
+                          },
+                          onTaken: _isCaregiverMode ? null : () => _updateStatus(d, DoseStatus.taken),
+                          onSkipped: _isCaregiverMode ? null : () => _updateStatus(d, DoseStatus.skipped),
                         ),
                       ),
                   ],
@@ -742,38 +748,44 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: (index) {
             if (index == _currentIndex) return;
-            Widget nextScreen;
-            if (index == 1) {
-              nextScreen = PillCalendarScreen(
-                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-                viewingPatientName: _isCaregiverMode ? _userName : null,
+            if (index == 2) {
+              showMedicinesModal(
+                context: context,
+                patientId: _effectivePatientId,
+                patientName: _userName,
+                isCaregiver: _isCaregiverMode,
+                onMedicinesChanged: _loadDashboardData,
               );
-            } else if (index == 2) {
-              nextScreen = AddMedicineScreen(
-                patientId: _isCaregiverMode ? _effectivePatientId : null,
-                patientName: _isCaregiverMode ? _userName : null,
-              );
-            } else if (index == 3) {
-              nextScreen = PatientMedicinesScreen(
-                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-                viewingPatientName: _isCaregiverMode ? _userName : null,
-              );
-            } else if (index == 4 && _isCaregiverMode) {
-              nextScreen = const CaregiverScreen();
-            } else {
               return;
             }
+            Widget nextScreen;
+            if (_isCaregiverMode) {
+              if (index == 1) {
+                nextScreen = PillCalendarScreen(
+                  viewingPatientId: _effectivePatientId,
+                  viewingPatientName: _userName,
+                );
+              } else if (index == 3) {
+                nextScreen = const CaregiverScreen();
+              } else {
+                return;
+              }
+            } else {
+              if (index == 1) {
+                nextScreen = const PillCalendarScreen();
+              } else {
+                return;
+              }
+            }
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              Navigator.of(context).pushReplacement(
-                PageRouteBuilder(
-                  pageBuilder: (_, __, ___) => nextScreen,
-                  transitionDuration: Duration.zero,
-                  reverseTransitionDuration: Duration.zero,
-                ),
-              );
-            });
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => nextScreen,
+                transitionDuration: const Duration(milliseconds: 1),
+                reverseTransitionDuration: const Duration(milliseconds: 1),
+                transitionsBuilder: (_, __, ___, child) => child,
+              ),
+            );
           },
           items: [
             BottomNavigationBarItem(
@@ -799,10 +811,6 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
               icon: const Icon(Icons.calendar_month_outlined),
               activeIcon: const Icon(Icons.calendar_month),
               label: l10n?.calendar ?? 'Calendar',
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.add),
-              label: l10n?.navAdd ?? 'Add',
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.medication_outlined),

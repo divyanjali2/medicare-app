@@ -18,6 +18,7 @@ class AddManuallyScreen extends StatefulWidget {
   final String? initialInstructions;
   final String? patientId;
   final String? patientName;
+  final Medicine? existingMedicine;
 
   const AddManuallyScreen({
     super.key,
@@ -27,6 +28,7 @@ class AddManuallyScreen extends StatefulWidget {
     this.initialInstructions,
     this.patientId,
     this.patientName,
+    this.existingMedicine,
   });
 
   @override
@@ -42,21 +44,35 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   TextEditingController? _instructionsController;
 
   TextEditingController get nameController => _nameController ??= TextEditingController(
-        text: widget.initialName ?? (widget.isFromScan ? 'Metformin' : ''),
+        text: widget.existingMedicine?.name ?? widget.initialName ?? (widget.isFromScan ? 'Metformin' : ''),
       );
   TextEditingController get dosageController => _dosageController ??= TextEditingController(
-        text: widget.initialDosage ?? (widget.isFromScan ? '500 mg' : ''),
+        text: widget.existingMedicine?.dosage ?? widget.initialDosage ?? (widget.isFromScan ? '500 mg' : ''),
       );
   TextEditingController get instructionsController =>
       _instructionsController ??= TextEditingController(
-        text: widget.initialInstructions ?? (widget.isFromScan ? 'Take with food' : ''),
+        text: widget.existingMedicine?.instructions ?? widget.initialInstructions ?? (widget.isFromScan ? 'Take with food' : ''),
       );
 
   String? _frequency;
-  String get frequency => _frequency ??= 'Once daily';
+  String get frequency => _frequency ??= widget.existingMedicine?.frequency ?? 'Once daily';
 
   String? _selectedTimeOfDay;
-  String get selectedTimeOfDay => _selectedTimeOfDay ??= 'Morning';
+  String get selectedTimeOfDay {
+    if (_selectedTimeOfDay != null) return _selectedTimeOfDay!;
+    if (widget.existingMedicine?.scheduledTimes.isNotEmpty == true) {
+      final hour = widget.existingMedicine!.scheduledTimes.first.hour;
+      if (hour >= 17 && hour < 20) {
+        _selectedTimeOfDay = 'Evening';
+      } else if (hour >= 20 || hour < 5) {
+        _selectedTimeOfDay = 'Night';
+      } else {
+        _selectedTimeOfDay = 'Morning';
+      }
+      return _selectedTimeOfDay!;
+    }
+    return _selectedTimeOfDay ??= 'Morning';
+  }
 
   bool _isSaving = false;
   bool _isCaregiver = false;
@@ -291,7 +307,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
       final patientId = _isCaregiver
           ? (_selectedPatientId ?? widget.patientId ?? AuthService.instance.currentUser?.uid ?? 'p1')
           : (widget.patientId ?? AuthService.instance.currentUser?.uid ?? 'p1');
-      final medicineId = DateTime.now().millisecondsSinceEpoch.toString();
+      final medicineId = widget.existingMedicine?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
 
       final medicine = Medicine(
         id: medicineId,
@@ -301,8 +317,8 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
         frequency: frequency,
         instructions: instructionsController.text.trim(),
         scheduledTimes: [doseTime],
-        createdAt: now,
-        addedViaScan: widget.isFromScan,
+        createdAt: widget.existingMedicine?.createdAt ?? now,
+        addedViaScan: widget.existingMedicine?.addedViaScan ?? widget.isFromScan,
         synced: false,
       );
 
@@ -609,7 +625,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    l10n?.manualEntry ?? 'MANUAL ENTRY',
+                                    widget.existingMedicine != null
+                                        ? 'EDIT MEDICINE'
+                                        : (l10n?.manualEntry ?? 'MANUAL ENTRY'),
                                     style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -618,7 +636,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                                     ),
                                   ),
                                   Text(
-                                    l10n?.addMedicine ?? 'Add medicine',
+                                    widget.existingMedicine != null
+                                        ? 'Edit medicine'
+                                        : (l10n?.addMedicine ?? 'Add medicine'),
                                     style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,

@@ -4,6 +4,17 @@ import 'package:sqflite/sqflite.dart';
 
 import '../models/medicine.dart';
 import '../models/user_profile.dart';
+import 'auth_service.dart';
+
+/// Thrown when an unauthorized action is attempted (e.g. caregiver attempting
+/// to create, modify, or delete medicines or dose logs).
+class PermissionDeniedException implements Exception {
+  final String message;
+  const PermissionDeniedException([this.message = 'Permission denied']);
+
+  @override
+  String toString() => 'PermissionDeniedException: $message';
+}
 
 /// Offline-first local storage.
 ///
@@ -72,9 +83,54 @@ class LocalDbService {
     );
   }
 
+  // --- Service Guard ---
+
+  /// Service guard ensuring that only patients can modify medicines and dose logs,
+  /// and only for their own patient profile. Caregivers are strictly read-only.
+  void enforcePatientWritePermission(String targetPatientId) {
+    final profile = AuthService.instance.currentProfile;
+    if (profile == null) {
+      // In offline tests or unauthenticated background tasks, permit.
+      return;
+    }
+    if (profile.role == UserRole.caregiver) {
+      throw const PermissionDeniedException('Caregivers have read-only access');
+    }
+    if (profile.role == UserRole.patient &&
+        targetPatientId.isNotEmpty &&
+        profile.uid != targetPatientId) {
+      throw const PermissionDeniedException('Patients can only modify their own data');
+    }
+  }
+
   // --- Medicines ---
 
+  Future<Medicine?> getMedicine(String medicineId) async {
+    if (_isMemory) {
+      return _webMedicines[medicineId];
+    }
+    final db = await database;
+    final rows = await db.query(
+      'medicines',
+      where: 'id = ?',
+      whereArgs: [medicineId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final map = Map<String, dynamic>.from(rows.first);
+    final rawTimes = map['scheduledTimes'];
+    if (rawTimes is String) {
+      map['scheduledTimes'] = rawTimes.split('|').where((s) => s.isNotEmpty).toList();
+    } else {
+      map['scheduledTimes'] = <String>[];
+    }
+    map['addedViaScan'] = map['addedViaScan'] == 1;
+    map['synced'] = map['synced'] == 1;
+    return Medicine.fromMap(map);
+  }
+
   Future<void> upsertMedicine(Medicine medicine) async {
+    enforcePatientWritePermission(medicine.patientId);
     if (_isMemory) {
       _webMedicines[medicine.id] = medicine;
       return;
@@ -155,6 +211,8 @@ class LocalDbService {
   }
 
   Future<void> deleteMedicine(String medicineId) async {
+    final existing = await getMedicine(medicineId);
+    enforcePatientWritePermission(existing?.patientId ?? '');
     if (_isMemory) {
       _webMedicines.remove(medicineId);
       return;
@@ -170,6 +228,8 @@ class LocalDbService {
   // --- Dose logs ---
 
   Future<void> upsertDoseLog(DoseLog log) async {
+    final med = await getMedicine(log.medicineId);
+    enforcePatientWritePermission(med?.patientId ?? '');
     if (_isMemory) {
       _webDoseLogs[log.id] = log;
       return;

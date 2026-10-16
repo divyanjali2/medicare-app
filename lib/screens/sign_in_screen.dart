@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
-import 'caregiver_screen.dart';
+import '../widgets/role_gate.dart';
 import 'forgot_password_screen.dart';
-import 'today_dashboard_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   final String? initialPhone;
@@ -64,22 +62,13 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
       );
 
-      // Route according to user role
-      if (profile.role == UserRole.caregiver) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => const CaregiverScreen(),
-          ),
-          (route) => false,
-        );
-      } else {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => TodayDashboardScreen(initialProfile: profile),
-          ),
-          (route) => false,
-        );
-      }
+      // Route according to user role using centralized RoleGate
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => RoleGate.getHomeScreenForRole(profile),
+        ),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
 

@@ -132,7 +132,7 @@ class Medicine {
 }
 
 /// Adherence status for a single scheduled dose on a given day.
-enum DoseStatus { pending, taken, late, missed }
+enum DoseStatus { pending, taken, late, missed, skipped }
 
 class DoseLog {
   final String id;
