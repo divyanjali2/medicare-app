@@ -7,6 +7,7 @@ import '../models/medicine.dart';
 import '../models/user_profile.dart';
 import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
+import '../services/phone_call_service.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/medicines_modal.dart';
 import '../widgets/pill_calendar.dart';
@@ -236,7 +237,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                 ),
                 const SizedBox(width: 5),
                 const Text(
-                  'Caregiver View • Read-Only',
+                  'Caregiver View',
                   style: TextStyle(
                     color: Color(0xFF0E7485),
                     fontWeight: FontWeight.w600,
@@ -248,6 +249,17 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.phone, color: Color(0xFF2E7D4E)),
+            tooltip: 'Call ${widget.patient.name}',
+            onPressed: () {
+              PhoneCallService.instance.makePhoneCall(
+                context: context,
+                phoneNumber: widget.patient.phoneNumber,
+                recipientName: widget.patient.name,
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.medication_outlined, color: AppColors.textDark),
             tooltip: 'View medicines',
@@ -270,7 +282,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Read-Only Informational Banner
+                  // Informational Banner
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
@@ -280,11 +292,11 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.lock_outline, size: 20, color: Color(0xFF0E7485)),
+                        Icon(Icons.info_outline, size: 20, color: Color(0xFF0E7485)),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Caregivers have read-only access. Medication schedule and dose logs are managed by the patient.',
+                            'Medication schedule and dose logs are managed directly by the patient.',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -379,34 +391,14 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Section 3: Today's Doses (Read-Only Medicine Cards)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n?.today ?? "Today's Doses",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE2E8F0),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Text(
-                          'Read-Only',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF475569),
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Section 3: Today's Doses
+                  Text(
+                    l10n?.today ?? "Today's Doses",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textDark,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (_todayDoses.isEmpty)

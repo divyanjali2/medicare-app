@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import '../widgets/role_gate.dart';
+import '../services/phone_call_service.dart';
 import 'patient_detail_screen.dart';
 
 class _PatientCardData {
@@ -452,7 +453,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     }
   }
 
-  void _openCheckInSheet(BuildContext context, String patientName) {
+  void _openCheckInSheet(BuildContext context, UserProfile patient) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -471,7 +472,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Check in with $patientName',
+                      'Check in with ${patient.name}',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -486,7 +487,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Choose an action to support $patientName with their medication schedule.',
+                  'Choose an action to support ${patient.name} with their medication schedule.',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textMuted,
@@ -503,21 +504,23 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     child: const Icon(Icons.call, color: Color(0xFF2E7D4E)),
                   ),
                   title: Text(
-                    'Call $patientName',
+                    'Call ${patient.name}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.textDark,
                     ),
                   ),
-                  subtitle: const Text('Direct phone call reminder'),
+                  subtitle: Text(
+                    patient.phoneNumber != null && patient.phoneNumber!.isNotEmpty
+                        ? 'Direct phone call: ${patient.phoneNumber}'
+                        : 'Direct phone call reminder',
+                  ),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Calling $patientName...'),
-                        backgroundColor: AppColors.brandTeal,
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    PhoneCallService.instance.makePhoneCall(
+                      context: context,
+                      phoneNumber: patient.phoneNumber,
+                      recipientName: patient.name,
                     );
                   },
                 ),
@@ -546,7 +549,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                     Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Gentle reminder sent to $patientName!'),
+                        content: Text('Gentle reminder sent to ${patient.name}!'),
                         backgroundColor: AppColors.brandTeal,
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -1030,15 +1033,31 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         onSelected: (value) {
-                                          if (value == 'detail') {
+                                          if (value == 'call') {
+                                            PhoneCallService.instance.makePhoneCall(
+                                              context: context,
+                                              phoneNumber: patient.phoneNumber,
+                                              recipientName: patient.name,
+                                            );
+                                          } else if (value == 'detail') {
                                             _openPatientDetail(context, patient);
                                           } else if (value == 'checkin') {
-                                            _openCheckInSheet(context, patient.name);
+                                            _openCheckInSheet(context, patient);
                                           } else if (value == 'unlink') {
                                             _unlinkPatient(patient);
                                           }
                                         },
                                         itemBuilder: (ctx) => [
+                                          const PopupMenuItem(
+                                            value: 'call',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.call, size: 18, color: Color(0xFF2E7D4E)),
+                                                SizedBox(width: 8),
+                                                Text('Call Patient'),
+                                              ],
+                                            ),
+                                          ),
                                           const PopupMenuItem(
                                             value: 'detail',
                                             child: Row(
@@ -1183,7 +1202,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         child: ElevatedButton.icon(
                                           onPressed: () => _openPatientDetail(context, patient),
                                           icon: const Icon(Icons.calendar_month, size: 16),
-                                          label: const Text('Calendar & Doses'),
+                                          label: const Text('Calendar'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.brandTeal,
                                             foregroundColor: Colors.white,
@@ -1197,9 +1216,13 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       OutlinedButton.icon(
-                                        onPressed: () => _openCheckInSheet(context, patient.name),
-                                        icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                                        label: const Text('Check In'),
+                                        onPressed: () => PhoneCallService.instance.makePhoneCall(
+                                          context: context,
+                                          phoneNumber: patient.phoneNumber,
+                                          recipientName: patient.name,
+                                        ),
+                                        icon: const Icon(Icons.call, size: 16),
+                                        label: const Text('Call'),
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: const Color(0xFF2E7D4E),
                                           side: const BorderSide(color: Color(0xFF2E7D4E)),
@@ -1207,6 +1230,22 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
                                           ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Tooltip(
+                                        message: 'Check In',
+                                        child: OutlinedButton(
+                                          onPressed: () => _openCheckInSheet(context, patient),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: AppColors.brandNavy,
+                                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          child: const Icon(Icons.chat_bubble_outline, size: 16),
                                         ),
                                       ),
                                     ],
@@ -1308,6 +1347,23 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                       ],
                     ),
                   ),
+                  ElevatedButton.icon(
+                    onPressed: () => PhoneCallService.instance.makePhoneCall(
+                      context: context,
+                      phoneNumber: card.profile.phoneNumber,
+                      recipientName: card.profile.name,
+                    ),
+                    icon: const Icon(Icons.call, size: 14),
+                    label: const Text('Call'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D4E),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: () => _openPatientDetail(context, card.profile),
                     child: const Text('View'),
@@ -1362,7 +1418,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'Role: Caregiver (Read-Only)',
+                  'Role: Caregiver',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,

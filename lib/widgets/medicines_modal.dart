@@ -318,7 +318,7 @@ class _MedicinesModalSheetState extends State<MedicinesModalSheet> {
                                     Icon(Icons.lock_outline, size: 12, color: Color(0xFF0E7485)),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Caregiver View • Read-Only',
+                                      'Caregiver View',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -841,7 +841,7 @@ class MedicineDetailSheet extends StatelessWidget {
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Caregiver View • Read-Only (Prescriptions cannot be modified)',
+                          'Caregiver View (Prescriptions managed by patient)',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,

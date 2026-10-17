@@ -245,8 +245,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Read-only indicator should be visible
-      expect(find.text('Caregiver View • Read-Only'), findsOneWidget);
+      // Caregiver View indicator should be visible
+      expect(find.text('Caregiver View'), findsOneWidget);
 
       // Add medicine buttons should NOT exist for caregiver
       expect(find.text('Add'), findsNothing);
@@ -272,8 +272,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Read-only badge should NOT be displayed
-      expect(find.text('Caregiver View • Read-Only'), findsNothing);
+      // Caregiver View badge should NOT be displayed
+      expect(find.text('Caregiver View'), findsNothing);
 
       // Add Medicine buttons must be displayed for patient
       expect(find.text('Add'), findsOneWidget);
@@ -317,7 +317,7 @@ void main() {
 
       expect(find.text('Atorvastatin'), findsOneWidget);
       expect(find.text('20 mg'), findsOneWidget);
-      expect(find.textContaining('Caregiver View • Read-Only'), findsOneWidget);
+      expect(find.textContaining('Caregiver View'), findsOneWidget);
       expect(find.text('Edit Medicine'), findsNothing);
       expect(find.text('Remove'), findsNothing);
       expect(find.text('Close'), findsOneWidget);

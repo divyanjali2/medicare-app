@@ -80,6 +80,19 @@ Index number MS26926162 → digit sum 34 → 34 mod 5 = 4 → **HealthTech**.
   - In-memory and local tracking guarantees deduplication so the patient and caregiver are never spammed.
   - Automatically records overdue status locally in SQLite (`DoseStatus.missed`) and syncs to Firestore `caregiver_alerts` collection.
 
+## Caregiver Phone Call Integration: Direct Dialer & Immediate Intervention
+
+- **Decision:** Enable caregivers to directly call patients from within the caregiver dashboard, patient detail screen, and care alerts feed using Android's native dialer (`Intent.ACTION_DIAL`) via a custom Flutter `MethodChannel` (`com.example.medicare_app/phone_call`).
+- **Why:**
+  - When medication alerts trigger (e.g., patient has missed a dose by 20 minutes), the caregiver needs immediate, single-tap access to call the patient to check on them.
+  - Using `Intent.ACTION_DIAL` (rather than `ACTION_CALL`) opens the native phone app with the patient's registered number pre-populated without requesting sensitive/dangerous `android.permission.CALL_PHONE` permissions, adhering to Google Play best practices and user privacy.
+- **Entry Points:**
+  1. **Patient Cards on Caregiver Dashboard:** Dedicated "Call" button alongside "Calendar & Doses".
+  2. **Care Alerts Feed:** Direct "Call" action button next to overdue dose alerts.
+  3. **Patient Detail Screen:** Phone action button in the top AppBar.
+  4. **Check-In Action Sheet:** "Call <patientName>" option displaying the patient's phone number.
+- **Graceful Fallbacks:** On Web, emulator environments without telephony, or invalid numbers, `PhoneCallService` presents a styled modal sheet displaying the patient's phone number with a copy-to-clipboard option.
+
 ## Failure log
 
 Record AI-assisted steps here as they happen during implementation,
