@@ -326,8 +326,8 @@ class AuthService {
         },
       );
 
-      // On platforms where verifyPhoneNumber callbacks are not immediately dispatched
-      Future.delayed(const Duration(seconds: 3), () {
+      // Allow Firebase up to 15 seconds to send SMS before falling back to demo code
+      Future.delayed(const Duration(seconds: 15), () {
         if (!hasCompleted) {
           hasCompleted = true;
           completer.complete(OtpSendResult(
