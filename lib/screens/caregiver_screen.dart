@@ -694,21 +694,21 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
           onTap: (index) {
             setState(() => _currentNavIndex = index);
           },
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people, color: AppColors.brandTeal),
-              label: 'Patients',
+              icon: const Icon(Icons.people_outline),
+              activeIcon: const Icon(Icons.people, color: AppColors.brandTeal),
+              label: l10n?.linkedPatients ?? 'Patients',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_outlined),
-              activeIcon: Icon(Icons.notifications, color: AppColors.brandTeal),
-              label: 'Alerts',
+              icon: const Icon(Icons.notifications_outlined),
+              activeIcon: const Icon(Icons.notifications, color: AppColors.brandTeal),
+              label: l10n?.careAlerts ?? 'Alerts',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings, color: AppColors.brandTeal),
-              label: 'Settings',
+              icon: const Icon(Icons.settings_outlined),
+              activeIcon: const Icon(Icons.settings, color: AppColors.brandTeal),
+              label: l10n?.settings ?? 'Settings',
             ),
           ],
         ),
@@ -1202,7 +1202,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                         child: ElevatedButton.icon(
                                           onPressed: () => _openPatientDetail(context, patient),
                                           icon: const Icon(Icons.calendar_month, size: 16),
-                                          label: const Text('Calendar'),
+                                          label: Text(l10n?.calendar ?? 'Calendar'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.brandTeal,
                                             foregroundColor: Colors.white,
@@ -1222,7 +1222,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                                           recipientName: patient.name,
                                         ),
                                         icon: const Icon(Icons.call, size: 16),
-                                        label: const Text('Call'),
+                                        label: Text(l10n?.callAction ?? 'Call'),
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: const Color(0xFF2E7D4E),
                                           side: const BorderSide(color: Color(0xFF2E7D4E)),
@@ -1268,18 +1268,18 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text(
-          'Care Alerts',
-          style: TextStyle(
+        Text(
+          l10n?.careAlerts ?? 'Care Alerts',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Real-time medication adherence alerts for your linked patients.',
-          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+        Text(
+          l10n?.careAlertsDesc ?? 'Real-time medication adherence alerts for your linked patients.',
+          style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
         ),
         const SizedBox(height: 20),
         if (attentionPatients.isEmpty)
@@ -1290,23 +1290,23 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFDCFCE7)),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 40),
-                SizedBox(height: 12),
+                const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 40),
+                const SizedBox(height: 12),
                 Text(
-                  'All Patients On Track',
-                  style: TextStyle(
+                  l10n?.allPatientsOnTrack ?? 'All Patients On Track',
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF166534),
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'No missed or late medication doses detected for your linked patients today.',
+                  l10n?.noMissedDosesToday ?? 'No missed or late medication doses detected for your linked patients today.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Color(0xFF15803D)),
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF15803D)),
                 ),
               ],
             ),
@@ -1354,7 +1354,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                       recipientName: card.profile.name,
                     ),
                     icon: const Icon(Icons.call, size: 14),
-                    label: const Text('Call'),
+                    label: Text(l10n?.callAction ?? 'Call'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E7D4E),
                       foregroundColor: Colors.white,
@@ -1366,7 +1366,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: () => _openPatientDetail(context, card.profile),
-                    child: const Text('View'),
+                    child: Text(l10n?.viewAction ?? 'View'),
                   ),
                 ],
               ),
@@ -1382,9 +1382,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Text(
-          'Settings',
-          style: TextStyle(
+        Text(
+          l10n?.settings ?? 'Settings',
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
             color: AppColors.textDark,
@@ -1402,7 +1402,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                profile?.name ?? 'Caregiver',
+                profile?.name ?? (l10n?.caregiverMode ?? 'Caregiver'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
@@ -1417,9 +1417,9 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
                   color: const Color(0xFFDCF0F2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'Role: Caregiver',
-                  style: TextStyle(
+                child: Text(
+                  l10n?.roleCaregiver ?? 'Role: Caregiver',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF0E7485),
@@ -1437,7 +1437,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             side: const BorderSide(color: Color(0xFFE2E4E8)),
           ),
           leading: const Icon(Icons.language, color: AppColors.brandTeal),
-          title: const Text('App Language', style: TextStyle(fontWeight: FontWeight.w600)),
+          title: Text(l10n?.appLanguage ?? 'App Language', style: const TextStyle(fontWeight: FontWeight.w600)),
           trailing: const LanguagePillSelector(isDark: false),
         ),
         const SizedBox(height: 12),
@@ -1448,7 +1448,7 @@ class _CaregiverScreenState extends State<CaregiverScreen> {
             side: const BorderSide(color: Color(0xFFE2E4E8)),
           ),
           leading: const Icon(Icons.logout, color: Colors.redAccent),
-          title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent)),
+          title: Text(l10n?.signOutButton ?? 'Sign Out', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.redAccent)),
           onTap: () async {
             await AuthService.instance.signOut();
             if (!mounted) return;

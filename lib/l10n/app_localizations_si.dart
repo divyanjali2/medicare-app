@@ -329,4 +329,127 @@ class AppLocalizationsSi extends AppLocalizations {
 
   @override
   String get manualEntrySubtitle => 'බෙහෙතේ විස්තර සහ වේලාවන් පහතින් සටහන් කරන්න.';
+
+  @override
+  String get afternoon => 'දහවල්';
+
+  @override
+  String get careAlerts => 'සත්කාරක අනතුරු ඇඟවීම්';
+
+  @override
+  String get careAlertsDesc => 'ඔබ හා සම්බන්ධිත රෝගීන්ගේ ඖෂධ ලබා ගැනීමේ සජීවී දැනුම්දීම්.';
+
+  @override
+  String get allPatientsOnTrack => 'සියලුම රෝගීන් නියමිත පරිදි බෙහෙත් ගනිමින් සිටී';
+
+  @override
+  String get noMissedDosesToday => 'අද දිනයේ කිසිදු රෝගියෙකුගේ බෙහෙත් මඟහැරීමක් හෝ ප්‍රමාදයක් වාර්තා වී නොමැත.';
+
+  @override
+  String get viewAction => 'බලන්න';
+
+  @override
+  String get callAction => 'අමතන්න';
+
+  @override
+  String get checkIn => 'සොයා බලන්න';
+
+  @override
+  String get settings => 'සැකසුම්';
+
+  @override
+  String get appLanguage => 'යෙදුමේ භාෂාව';
+
+  @override
+  String get roleCaregiver => 'කාර්යභාරය: රැකබලා ගන්නා';
+
+  @override
+  String get rolePatient => 'කාර්යභාරය: රෝගියා';
+
+  @override
+  String get adherenceCalendar => 'ඖෂධ දින දර්ශනය';
+
+  @override
+  String get todaysDoses => 'අද දින ලබාගත යුතු මාත්‍රා';
+
+  @override
+  String get scheduleManagedByPatient => 'ඖෂධ කාලසටහන සහ සටහන් රෝගියා විසින් සෘජුවම කළමනාකරණය කරනු ලැබේ.';
+
+  @override
+  String get scanMedicineCard => 'බෙහෙත් කාඩ්පත ස්කෑන් කරන්න';
+
+  @override
+  String get uploadFromGallery => 'ගැලරියෙන් තෝරන්න';
+
+  @override
+  String get takePhoto => 'කැමරාවෙන් ඡායාරූපයක් ගන්න';
+
+  @override
+  String get chooseFromGallery => 'ගැලරියෙන් ඡායාරූපයක් තෝරන්න';
+
+  @override
+  String get customTime => 'නියමිත වේලාව';
+
+  @override
+  String get selectTime => 'වේලාව තෝරන්න';
+
+  @override
+  String get deleteMedicine => 'බෙහෙත ඉවත් කරන්න';
+
+  @override
+  String get confirmDeleteMedicine => 'මෙම බෙහෙත ඉවත් කිරීමට ඔබට විශ්වාසද?';
+
+  @override
+  String get editMedicine => 'බෙහෙත් විස්තර සංස්කරණය';
+
+  @override
+  String get close => 'වසන්න';
+
+  @override
+  String get confirm => 'තහවුරු කරන්න';
+
+  @override
+  String get enterInviteCodeHint => 'රෝගියාගේ දුරකථනයේ ඇති අක්ෂර 6ක ආරාධනා කේතය ඇතුළත් කරන්න:';
+
+  @override
+  String get inviteCodeLabel => 'ආරාධනා කේතය';
+
+  @override
+  String get linkPatientBtn => 'රෝගියා සම්බන්ධ කරන්න';
+
+  @override
+  String get unlinkPatientTitle => 'රෝගියා ඉවත් කරන්න';
+
+  @override
+  String get copyNumber => 'අංකය පිටපත් කරන්න';
+
+  @override
+  String get openPhoneDialer => 'දුරකථන ඩයලරය විවෘත කරන්න';
+
+  @override
+  String get directPhoneCall => 'සෘජු දුරකථන ඇමතුම';
+
+  @override
+  String get timesOfDay => 'දවසේ වේලාවන්';
+
+  @override
+  String get passwordLabel => 'මුරපදය';
+
+  @override
+  String get passwordHint => 'ඔබගේ මුරපදය ඇතුළත් කරන්න';
+
+  @override
+  String get forgotPassword => 'මුරපදය අමතක වුණාද?';
+
+  @override
+  String get resetPassword => 'මුරපදය නැවත සකසන්න';
+
+  @override
+  String get enterNewPassword => 'නව මුරපදයක් ඇතුළත් කරන්න';
+
+  @override
+  String get verifyOtp => 'කේතය තහවුරු කරන්න';
+
+  @override
+  String get otpSentToPhone => 'සත්‍යාපන කේතය ඔබගේ දුරකථනයට යවන ලදී';
 }

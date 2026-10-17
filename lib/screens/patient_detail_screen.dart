@@ -236,9 +236,9 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 5),
-                const Text(
-                  'Caregiver View',
-                  style: TextStyle(
+                Text(
+                  l10n?.caregiverView ?? 'Caregiver View',
+                  style: const TextStyle(
                     color: Color(0xFF0E7485),
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
@@ -290,14 +290,15 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFBCE1E6)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.info_outline, size: 20, color: Color(0xFF0E7485)),
+                        const Icon(Icons.info_outline, size: 20, color: Color(0xFF0E7485)),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Medication schedule and dose logs are managed directly by the patient.',
-                            style: TextStyle(
+                            l10n?.scheduleManagedByPatient ??
+                                'Medication schedule and dose logs are managed directly by the patient.',
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               color: Color(0xFF0F3943),
@@ -311,7 +312,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
 
                   // Section 1: Pill Calendar
                   Text(
-                    l10n?.calendar ?? 'Adherence Calendar',
+                    l10n?.adherenceCalendar ?? (l10n?.calendar ?? 'Adherence Calendar'),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -393,7 +394,7 @@ class _PatientDetailScreenState extends State<PatientDetailScreen> {
 
                   // Section 3: Today's Doses
                   Text(
-                    l10n?.today ?? "Today's Doses",
+                    l10n?.todaysDoses ?? (l10n?.today ?? "Today's Doses"),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,

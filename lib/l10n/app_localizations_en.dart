@@ -329,4 +329,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manualEntrySubtitle => 'Fill in the medication details and reminder schedule below.';
+
+  @override
+  String get afternoon => 'Afternoon';
+
+  @override
+  String get careAlerts => 'Care Alerts';
+
+  @override
+  String get careAlertsDesc => 'Real-time medication adherence alerts for your linked patients.';
+
+  @override
+  String get allPatientsOnTrack => 'All Patients On Track';
+
+  @override
+  String get noMissedDosesToday => 'No missed or late medication doses detected for your linked patients today.';
+
+  @override
+  String get viewAction => 'View';
+
+  @override
+  String get callAction => 'Call';
+
+  @override
+  String get checkIn => 'Check In';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get appLanguage => 'App Language';
+
+  @override
+  String get roleCaregiver => 'Role: Caregiver';
+
+  @override
+  String get rolePatient => 'Role: Patient';
+
+  @override
+  String get adherenceCalendar => 'Adherence Calendar';
+
+  @override
+  String get todaysDoses => 'Today\'s Doses';
+
+  @override
+  String get scheduleManagedByPatient => 'Medication schedule and dose logs are managed directly by the patient.';
+
+  @override
+  String get scanMedicineCard => 'Scan medicine card';
+
+  @override
+  String get uploadFromGallery => 'Upload from gallery';
+
+  @override
+  String get takePhoto => 'Take photo with camera';
+
+  @override
+  String get chooseFromGallery => 'Choose from gallery';
+
+  @override
+  String get customTime => 'Custom time';
+
+  @override
+  String get selectTime => 'Select Time';
+
+  @override
+  String get deleteMedicine => 'Delete Medicine';
+
+  @override
+  String get confirmDeleteMedicine => 'Are you sure you want to delete this medicine?';
+
+  @override
+  String get editMedicine => 'Edit Medicine';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get enterInviteCodeHint => 'Enter the 6-character invite code generated on your patient\'s device:';
+
+  @override
+  String get inviteCodeLabel => 'Invite Code';
+
+  @override
+  String get linkPatientBtn => 'Link Patient';
+
+  @override
+  String get unlinkPatientTitle => 'Unlink Patient';
+
+  @override
+  String get copyNumber => 'Copy Number';
+
+  @override
+  String get openPhoneDialer => 'Open Phone Dialer';
+
+  @override
+  String get directPhoneCall => 'Direct phone call';
+
+  @override
+  String get timesOfDay => 'Times of day';
+
+  @override
+  String get passwordLabel => 'Password';
+
+  @override
+  String get passwordHint => 'Enter your password';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get resetPassword => 'Reset Password';
+
+  @override
+  String get enterNewPassword => 'Enter new password';
+
+  @override
+  String get verifyOtp => 'Verify Code';
+
+  @override
+  String get otpSentToPhone => 'Verification code has been sent to your phone';
 }

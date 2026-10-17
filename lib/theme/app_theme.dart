@@ -40,6 +40,14 @@ class AppTheme {
         surface: AppColors.backgroundOffWhite,
       ),
       fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
+      fontFamilyFallback: [
+        if (GoogleFonts.notoSansSinhala().fontFamily != null)
+          GoogleFonts.notoSansSinhala().fontFamily!,
+        'Noto Sans Sinhala',
+        'Iskoola Pota',
+        'Nirmala UI',
+        'sans-serif',
+      ],
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
           fontWeight: FontWeight.bold,

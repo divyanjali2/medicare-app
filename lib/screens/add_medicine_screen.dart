@@ -221,6 +221,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   }
 
   void _showImageSourcePicker() {
+    final l10n = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -235,9 +236,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Scan Medicine Card',
-                  style: TextStyle(
+                Text(
+                  l10n?.scanMedicineCard ?? 'Scan Medicine Card',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textDark,
@@ -258,7 +259,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     ),
                     child: const Icon(Icons.camera_alt_outlined, color: AppColors.brandTeal),
                   ),
-                  title: const Text('Take a photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(l10n?.takePhoto ?? 'Take a photo', style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Point camera at the medicine card or box'),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -275,7 +276,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     ),
                     child: const Icon(Icons.photo_library_outlined, color: AppColors.brandNavy),
                   ),
-                  title: const Text('Upload from gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                  title: Text(l10n?.uploadFromGallery ?? 'Upload from gallery', style: const TextStyle(fontWeight: FontWeight.w600)),
                   subtitle: const Text('Choose a photo from your device library'),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -536,9 +537,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              const Text(
-                                'Scan medicine card',
-                                style: TextStyle(
+                              Text(
+                                l10n?.scanMedicineCard ?? 'Scan medicine card',
+                                style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.brandTeal,
@@ -567,9 +568,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () => _pickAndScanImage(ImageSource.gallery),
                         icon: const Icon(Icons.photo_library_outlined, size: 20, color: AppColors.brandTeal),
-                        label: const Text(
-                          'Upload from gallery',
-                          style: TextStyle(
+                        label: Text(
+                          l10n?.uploadFromGallery ?? 'Upload from gallery',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: AppColors.brandTeal,

@@ -730,6 +730,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fill in the medication details and reminder schedule below.'**
   String get manualEntrySubtitle;
+
+  /// No description provided for @afternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Afternoon'**
+  String get afternoon;
+
+  /// No description provided for @careAlerts.
+  ///
+  /// In en, this message translates to:
+  /// **'Care Alerts'**
+  String get careAlerts;
+
+  /// No description provided for @careAlertsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time medication adherence alerts for your linked patients.'**
+  String get careAlertsDesc;
+
+  /// No description provided for @allPatientsOnTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'All Patients On Track'**
+  String get allPatientsOnTrack;
+
+  /// No description provided for @noMissedDosesToday.
+  ///
+  /// In en, this message translates to:
+  /// **'No missed or late medication doses detected for your linked patients today.'**
+  String get noMissedDosesToday;
+
+  /// No description provided for @viewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get viewAction;
+
+  /// No description provided for @callAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get callAction;
+
+  /// No description provided for @checkIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check In'**
+  String get checkIn;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
+
+  /// No description provided for @appLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get appLanguage;
+
+  /// No description provided for @roleCaregiver.
+  ///
+  /// In en, this message translates to:
+  /// **'Role: Caregiver'**
+  String get roleCaregiver;
+
+  /// No description provided for @rolePatient.
+  ///
+  /// In en, this message translates to:
+  /// **'Role: Patient'**
+  String get rolePatient;
+
+  /// No description provided for @adherenceCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Adherence Calendar'**
+  String get adherenceCalendar;
+
+  /// No description provided for @todaysDoses.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Doses'**
+  String get todaysDoses;
+
+  /// No description provided for @scheduleManagedByPatient.
+  ///
+  /// In en, this message translates to:
+  /// **'Medication schedule and dose logs are managed directly by the patient.'**
+  String get scheduleManagedByPatient;
+
+  /// No description provided for @scanMedicineCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan medicine card'**
+  String get scanMedicineCard;
+
+  /// No description provided for @uploadFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload from gallery'**
+  String get uploadFromGallery;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo with camera'**
+  String get takePhoto;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @customTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom time'**
+  String get customTime;
+
+  /// No description provided for @selectTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Time'**
+  String get selectTime;
+
+  /// No description provided for @deleteMedicine.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Medicine'**
+  String get deleteMedicine;
+
+  /// No description provided for @confirmDeleteMedicine.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this medicine?'**
+  String get confirmDeleteMedicine;
+
+  /// No description provided for @editMedicine.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Medicine'**
+  String get editMedicine;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @enterInviteCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-character invite code generated on your patient\'s device:'**
+  String get enterInviteCodeHint;
+
+  /// No description provided for @inviteCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Code'**
+  String get inviteCodeLabel;
+
+  /// No description provided for @linkPatientBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Patient'**
+  String get linkPatientBtn;
+
+  /// No description provided for @unlinkPatientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink Patient'**
+  String get unlinkPatientTitle;
+
+  /// No description provided for @copyNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Number'**
+  String get copyNumber;
+
+  /// No description provided for @openPhoneDialer.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Phone Dialer'**
+  String get openPhoneDialer;
+
+  /// No description provided for @directPhoneCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct phone call'**
+  String get directPhoneCall;
+
+  /// No description provided for @timesOfDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Times of day'**
+  String get timesOfDay;
+
+  /// No description provided for @passwordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordLabel;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get passwordHint;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get forgotPassword;
+
+  /// No description provided for @resetPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPassword;
+
+  /// No description provided for @enterNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new password'**
+  String get enterNewPassword;
+
+  /// No description provided for @verifyOtp.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get verifyOtp;
+
+  /// No description provided for @otpSentToPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code has been sent to your phone'**
+  String get otpSentToPhone;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
