@@ -31,3 +31,5 @@ GoogleService-Info.plist
 
 # Error logs generated at runtime
 logs/*.log
+
+/tools
