@@ -63,7 +63,7 @@
   "signInWithDemo": "Sign in with demo account",
   "welcomeBackTitle": "WELCOME BACK",
   "signInPhoneTitle": "Sign in with your phone",
-  "signInPhoneSubtitle": "We'll send a secure verification code.",
+  "signInPhoneSubtitle": "Enter your phone number and password to continue.",
   "patientViewSubtitle": "Patient view",
   "signOutButton": "Sign out",
   "testReminderButton": "Test reminder",

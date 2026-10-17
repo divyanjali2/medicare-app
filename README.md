@@ -1,4 +1,4 @@
-# MediCare (SE5070 — Enterprise Mobility)
+# MediCare App
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?logo=firebase)](https://firebase.google.com)
@@ -7,8 +7,6 @@
 [![Area](https://img.shields.io/badge/Domain-HealthTech-0E7485)](#)
 
 **MediCare** is an offline-first medication adherence tracker designed for elderly and chronic-condition patients, paired with real-time caregiver monitoring, label OCR scanning, automated dose reminders, escalation alerts, and direct phone contact.
-
-Developed for **SE5070 Enterprise Mobility (MSc)** in the HealthTech domain.
 
 ---
 

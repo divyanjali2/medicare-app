@@ -434,7 +434,7 @@ abstract class AppLocalizations {
   /// No description provided for @signInPhoneSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'We\'ll send a secure verification code.'**
+  /// **'Enter your phone number and password to continue.'**
   String get signInPhoneSubtitle;
 
   /// No description provided for @patientViewSubtitle.

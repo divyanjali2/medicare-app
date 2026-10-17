@@ -179,7 +179,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInPhoneTitle => 'Sign in with your phone';
 
   @override
-  String get signInPhoneSubtitle => 'We\'ll send a secure verification code.';
+  String get signInPhoneSubtitle => 'Enter your phone number and password to continue.';
 
   @override
   String get patientViewSubtitle => 'Patient view';

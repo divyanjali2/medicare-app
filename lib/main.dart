@@ -54,7 +54,7 @@ class MediCareApp extends StatefulWidget {
 }
 
 class _MediCareAppState extends State<MediCareApp> {
-  Locale _locale = const Locale('si');
+  Locale _locale = const Locale('en');
 
   void setLocale(Locale newLocale) {
     setState(() => _locale = newLocale);

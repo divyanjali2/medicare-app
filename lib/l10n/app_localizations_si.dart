@@ -179,7 +179,7 @@ class AppLocalizationsSi extends AppLocalizations {
   String get signInPhoneTitle => 'ඔබගේ දුරකථන අංකයෙන් පිවිසෙන්න';
 
   @override
-  String get signInPhoneSubtitle => 'අපි ආරක්ෂිත සත්‍යාපන කේතයක් එවන්නෙමු.';
+  String get signInPhoneSubtitle => 'ඉදිරියට යාමට ඔබගේ දුරකථන අංකය සහ මුරපදය ඇතුළත් කරන්න.';
 
   @override
   String get patientViewSubtitle => 'රෝගියාගේ දර්ශනය';
