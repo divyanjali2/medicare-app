@@ -18,6 +18,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Scan medicine card'), findsOneWidget);
+      expect(find.text('Upload from gallery'), findsOneWidget);
       expect(find.text('Enter manually'), findsOneWidget);
     });
 

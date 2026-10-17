@@ -123,16 +123,16 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
     );
   }
 
-  Future<void> _handleScanMedicineCard() async {
+  Future<void> _pickAndScanImage(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final XFile? photo = await picker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         preferredCameraDevice: CameraDevice.rear,
       );
 
       if (photo == null) {
-        // User cancelled camera
+        // User cancelled picker
         return;
       }
 
@@ -183,11 +183,15 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         );
       }
     } catch (e) {
-      debugPrint('Camera permission or device error: $e');
+      debugPrint('Image selection error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Camera access unavailable. Switching to manual entry.'),
+          SnackBar(
+            content: Text(
+              source == ImageSource.camera
+                  ? 'Camera access unavailable. Switching to manual entry.'
+                  : 'Gallery access unavailable. Switching to manual entry.',
+            ),
             backgroundColor: AppColors.statusLate,
           ),
         );
@@ -214,6 +218,76 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         }
       }
     }
+  }
+
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Scan Medicine Card',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Choose where to get the medicine image from:',
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandTeal.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.brandTeal),
+                  ),
+                  title: const Text('Take a photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Point camera at the medicine card or box'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _pickAndScanImage(ImageSource.camera);
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandNavy.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_outlined, color: AppColors.brandNavy),
+                  ),
+                  title: const Text('Upload from gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Choose a photo from your device library'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _pickAndScanImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -432,7 +506,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     
                     // Scan Box
                     GestureDetector(
-                      onTap: _handleScanMedicineCard,
+                      onTap: _showImageSourcePicker,
                       child: CustomPaint(
                         painter: DashedRectPainter(
                           color: AppColors.brandTeal,
@@ -484,7 +558,32 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+
+                    // Upload from gallery button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickAndScanImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_outlined, size: 20, color: AppColors.brandTeal),
+                        label: const Text(
+                          'Upload from gallery',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandTeal,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.brandTeal, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          backgroundColor: AppColors.brandTeal.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
                     
                     // Or Divider
                     Row(
