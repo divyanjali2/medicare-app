@@ -67,6 +67,13 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
   Set<String> get selectedTimesOfDay => _selectedTimesOfDay;
   String get selectedTimeOfDay => _selectedTimesOfDay.isNotEmpty ? _selectedTimesOfDay.first : 'Morning';
 
+  final Map<String, TimeOfDay> _customTimesOfDay = {
+    'Morning': const TimeOfDay(hour: 8, minute: 0),
+    'Evening': const TimeOfDay(hour: 18, minute: 0),
+    'Night': const TimeOfDay(hour: 21, minute: 0),
+  };
+  Map<String, TimeOfDay> get customTimesOfDay => _customTimesOfDay;
+
   bool _isSaving = false;
   bool _isCaregiver = false;
   List<UserProfile> _linkedPatients = [];
@@ -126,10 +133,13 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
         final hour = st.hour;
         if (hour >= 17 && hour < 20) {
           _selectedTimesOfDay.add('Evening');
+          _customTimesOfDay['Evening'] = TimeOfDay(hour: st.hour, minute: st.minute);
         } else if (hour >= 20 || hour < 5) {
           _selectedTimesOfDay.add('Night');
+          _customTimesOfDay['Night'] = TimeOfDay(hour: st.hour, minute: st.minute);
         } else {
           _selectedTimesOfDay.add('Morning');
+          _customTimesOfDay['Morning'] = TimeOfDay(hour: st.hour, minute: st.minute);
         }
       }
     }
@@ -225,6 +235,25 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
     );
   }
 
+  TimeOfDay _getDefaultTimeOfDay(String period) {
+    switch (period) {
+      case 'Evening':
+        return const TimeOfDay(hour: 18, minute: 0);
+      case 'Night':
+        return const TimeOfDay(hour: 21, minute: 0);
+      case 'Morning':
+      default:
+        return const TimeOfDay(hour: 8, minute: 0);
+    }
+  }
+
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
   Widget _buildTimeCheckboxOption({
     required String value,
     required String title,
@@ -234,6 +263,8 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
     required Color iconBgColor,
   }) {
     final isSelected = _selectedTimesOfDay.contains(value);
+    final currentTime = _customTimesOfDay[value] ?? _getDefaultTimeOfDay(value);
+    final formattedTime = _formatTimeOfDay(currentTime);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
@@ -334,8 +365,65 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
                 ),
               ),
 
-              if (isSelected)
-                const Icon(Icons.check_circle, color: AppColors.brandTeal, size: 20),
+              const SizedBox(width: 8),
+
+              // Tappable Time Picker Button
+              Tooltip(
+                message: 'Tap to change time',
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: currentTime,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _customTimesOfDay[value] = picked;
+                        _selectedTimesOfDay.add(value);
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.brandTeal.withValues(alpha: 0.12)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected ? AppColors.brandTeal : AppColors.borderSubtle,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: isSelected ? AppColors.brandTeal : AppColors.textDark,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          formattedTime,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? AppColors.brandTeal : AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.edit,
+                          size: 12,
+                          color: isSelected ? AppColors.brandTeal : AppColors.textMuted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -366,13 +454,16 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
 
       final List<DateTime> scheduledTimesList = [];
       if (_selectedTimesOfDay.contains('Morning')) {
-        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 8, 0));
+        final t = _customTimesOfDay['Morning'] ?? const TimeOfDay(hour: 8, minute: 0);
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, t.hour, t.minute));
       }
       if (_selectedTimesOfDay.contains('Evening')) {
-        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 18, 0));
+        final t = _customTimesOfDay['Evening'] ?? const TimeOfDay(hour: 18, minute: 0);
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, t.hour, t.minute));
       }
       if (_selectedTimesOfDay.contains('Night')) {
-        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 21, 0));
+        final t = _customTimesOfDay['Night'] ?? const TimeOfDay(hour: 21, minute: 0);
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, t.hour, t.minute));
       }
 
       if (scheduledTimesList.isEmpty) {
@@ -1108,14 +1199,14 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
                       const Padding(
                         padding: EdgeInsets.only(bottom: 8.0),
                         child: Text(
-                          'Check one, two, or all times of day when this medicine should be taken.',
+                          'Check the times of day, and tap any time pill (e.g. 8:00 AM) to customize the exact reminder time.',
                           style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                         ),
                       ),
                       _buildTimeCheckboxOption(
                         value: 'Morning',
                         title: l10n?.morning ?? 'Morning',
-                        timeSubtitle: 'Around 8:00 AM • Recommended with breakfast',
+                        timeSubtitle: 'Recommended with breakfast • Tap time to change',
                         icon: Icons.wb_sunny_rounded,
                         iconColor: const Color(0xFFD97706),
                         iconBgColor: const Color(0xFFFEF3C7),
@@ -1123,7 +1214,7 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
                       _buildTimeCheckboxOption(
                         value: 'Evening',
                         title: l10n?.evening ?? 'Evening',
-                        timeSubtitle: 'Around 6:00 PM • Recommended with dinner',
+                        timeSubtitle: 'Recommended with dinner • Tap time to change',
                         icon: Icons.wb_twilight_rounded,
                         iconColor: const Color(0xFFEA580C),
                         iconBgColor: const Color(0xFFFFEDD5),
@@ -1131,7 +1222,7 @@ class AddManuallyScreenState extends State<AddManuallyScreen> {
                       _buildTimeCheckboxOption(
                         value: 'Night',
                         title: l10n?.night ?? 'Night',
-                        timeSubtitle: 'Around 9:00 PM • Recommended before sleep',
+                        timeSubtitle: 'Recommended before sleep • Tap time to change',
                         icon: Icons.nightlight_round,
                         iconColor: const Color(0xFF4F46E5),
                         iconBgColor: const Color(0xFFEEF2FF),

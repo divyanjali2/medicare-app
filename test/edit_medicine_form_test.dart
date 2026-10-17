@@ -112,4 +112,33 @@ void main() {
     expect(state.selectedTimesOfDay.contains('Evening'), isTrue);
     expect(state.selectedTimesOfDay.contains('Night'), isTrue);
   });
+
+  testWidgets('AddManuallyScreen preserves custom hours and minutes for scheduled times', (tester) async {
+    final customTimeMed = Medicine(
+      id: 'med-test-4',
+      patientId: 'patient-test-1',
+      name: 'Omeprazole',
+      dosage: '20 mg',
+      frequency: 'Once daily',
+      instructions: 'Before breakfast',
+      scheduledTimes: [DateTime(2026, 10, 16, 7, 30)],
+      createdAt: DateTime(2026, 10, 16),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AddManuallyScreen(
+          existingMedicine: customTimeMed,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final state = tester.state<AddManuallyScreenState>(find.byType(AddManuallyScreen));
+    expect(state.selectedTimesOfDay.contains('Morning'), isTrue);
+    expect(state.customTimesOfDay['Morning']?.hour, equals(7));
+    expect(state.customTimesOfDay['Morning']?.minute, equals(30));
+    expect(find.text('7:30 AM'), findsOneWidget);
+  });
 }
