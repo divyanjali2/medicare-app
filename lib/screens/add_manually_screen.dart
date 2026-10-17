@@ -19,6 +19,7 @@ class AddManuallyScreen extends StatefulWidget {
   final String? patientId;
   final String? patientName;
   final Medicine? existingMedicine;
+  final List<String>? candidates;
 
   const AddManuallyScreen({
     super.key,
@@ -29,6 +30,7 @@ class AddManuallyScreen extends StatefulWidget {
     this.patientId,
     this.patientName,
     this.existingMedicine,
+    this.candidates,
   });
 
   @override
@@ -39,23 +41,27 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   GlobalKey<FormState>? _formKey;
   GlobalKey<FormState> get formKey => _formKey ??= GlobalKey<FormState>();
 
+  List<String> get _candidates => widget.candidates ?? [];
+
   TextEditingController? _nameController;
   TextEditingController? _dosageController;
   TextEditingController? _instructionsController;
 
   TextEditingController get nameController => _nameController ??= TextEditingController(
-        text: widget.existingMedicine?.name ?? widget.initialName ?? (widget.isFromScan ? 'Metformin' : ''),
+        text: widget.existingMedicine?.name ??
+            widget.initialName ??
+            (widget.isFromScan && _candidates.isNotEmpty ? _candidates.first : ''),
       );
   TextEditingController get dosageController => _dosageController ??= TextEditingController(
-        text: widget.existingMedicine?.dosage ?? widget.initialDosage ?? (widget.isFromScan ? '500 mg' : ''),
+        text: widget.existingMedicine?.dosage ?? widget.initialDosage ?? '',
       );
   TextEditingController get instructionsController =>
       _instructionsController ??= TextEditingController(
-        text: widget.existingMedicine?.instructions ?? widget.initialInstructions ?? (widget.isFromScan ? 'Take with food' : ''),
+        text: widget.existingMedicine?.instructions ?? widget.initialInstructions ?? '',
       );
 
   String? _frequency;
-  String get frequency => _frequency ??= widget.existingMedicine?.frequency ?? 'Once daily';
+  String get frequency => _frequency ?? widget.existingMedicine?.frequency ?? '';
 
   String? _selectedTimeOfDay;
   String get selectedTimeOfDay {
@@ -81,6 +87,13 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   String? _selectedPatientName;
   bool _isLoadingPatients = false;
 
+  bool get _isSaveEnabled {
+    final hasName = (_nameController?.text ?? '').trim().isNotEmpty;
+    final hasDosage = (_dosageController?.text ?? '').trim().isNotEmpty;
+    final hasFreq = (_frequency ?? '').trim().isNotEmpty;
+    return hasName && hasDosage && hasFreq && !_isSaving;
+  }
+
   static const List<String> _frequencies = [
     'Once daily',
     'Twice daily',
@@ -94,21 +107,20 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   void initState() {
     super.initState();
     _formKey = GlobalKey<FormState>();
-    _nameController = TextEditingController(
-      text: widget.existingMedicine?.name ??
-          widget.initialName ??
-          (widget.isFromScan ? 'Metformin' : ''),
-    );
+    final initialName = widget.existingMedicine?.name ??
+        widget.initialName ??
+        (widget.isFromScan && _candidates.isNotEmpty ? _candidates.first : '');
+
+    _nameController = TextEditingController(text: initialName);
     _dosageController = TextEditingController(
-      text: widget.existingMedicine?.dosage ??
-          widget.initialDosage ??
-          (widget.isFromScan ? '500 mg' : ''),
+      text: widget.existingMedicine?.dosage ?? widget.initialDosage ?? '',
     );
     _instructionsController = TextEditingController(
-      text: widget.existingMedicine?.instructions ??
-          widget.initialInstructions ??
-          (widget.isFromScan ? 'Take with food' : ''),
+      text: widget.existingMedicine?.instructions ?? widget.initialInstructions ?? '',
     );
+
+    _nameController?.addListener(_onFieldChanged);
+    _dosageController?.addListener(_onFieldChanged);
 
     final existingFreq = widget.existingMedicine?.frequency;
     if (existingFreq != null && existingFreq.isNotEmpty) {
@@ -118,7 +130,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
       );
       _frequency = matched;
     } else {
-      _frequency = 'Once daily';
+      _frequency = null;
     }
 
     if (widget.existingMedicine?.scheduledTimes.isNotEmpty == true) {
@@ -137,6 +149,20 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     _selectedPatientId = widget.patientId ?? widget.existingMedicine?.patientId;
     _selectedPatientName = widget.patientName;
     _initCaregiverPatientSelection();
+  }
+
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _nameController?.removeListener(_onFieldChanged);
+    _dosageController?.removeListener(_onFieldChanged);
+    _nameController?.dispose();
+    _dosageController?.dispose();
+    _instructionsController?.dispose();
+    super.dispose();
   }
 
   Future<void> _initCaregiverPatientSelection() async {
@@ -177,13 +203,6 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _nameController?.dispose();
-    _dosageController?.dispose();
-    _instructionsController?.dispose();
-    super.dispose();
-  }
 
   Widget _buildFieldLabel(String label, {bool isOptional = false}) {
     return Padding(
@@ -238,7 +257,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.brandTeal.withOpacity(0.07) : Colors.white,
+            color: isSelected ? AppColors.brandTeal.withValues(alpha: 0.07) : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isSelected ? AppColors.brandTeal : AppColors.borderSubtle,
@@ -643,7 +662,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                               width: 56,
                               height: 56,
                               decoration: BoxDecoration(
-                                color: AppColors.brandTeal.withOpacity(0.12),
+                                color: AppColors.brandTeal.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: const Center(
@@ -803,6 +822,33 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
 
                       // 1. Medicine Name Field
                       _buildFieldLabel(l10n?.medicineNameLabel ?? 'Medicine name'),
+                      if (widget.isFromScan && _candidates.isEmpty) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFDE68A)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 18, color: Color(0xFFD97706)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  "Couldn't read the name, please type it",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       TextFormField(
                         controller: nameController,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -838,6 +884,41 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                           return null;
                         },
                       ),
+                      if (widget.isFromScan && _candidates.length > 1) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Other detected names:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: _candidates.skip(1).map((candidate) {
+                            final isSelected = _nameController?.text.trim() == candidate;
+                            return ChoiceChip(
+                              label: Text(candidate),
+                              selected: isSelected,
+                              selectedColor: AppColors.brandTeal.withValues(alpha: 0.18),
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              labelStyle: TextStyle(
+                                color: isSelected ? AppColors.brandTeal : AppColors.textDark,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                              onSelected: (_) {
+                                setState(() {
+                                  _nameController?.text = candidate;
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
 
                       // 2. Dosage Field
                       _buildFieldLabel(l10n?.dosageLabel ?? 'Dosage'),
@@ -880,7 +961,8 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                       // 3. How Often (Frequency) Field
                       _buildFieldLabel(l10n?.frequencyLabel ?? 'How often?'),
                       DropdownButtonFormField<String>(
-                        value: _frequencies.contains(frequency) ? frequency : _frequencies.first,
+                        value: _frequency != null && _frequencies.contains(_frequency) ? _frequency : null,
+                        hint: const Text('Select frequency', style: TextStyle(color: AppColors.textMuted)),
                         icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark),
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.event_repeat_outlined, color: AppColors.brandTeal),
@@ -909,6 +991,12 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                           if (val != null) {
                             setState(() => _frequency = val);
                           }
+                        },
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please select how often to take this medicine';
+                          }
+                          return null;
                         },
                       ),
 
@@ -974,7 +1062,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton.icon(
-                          onPressed: _isSaving ? null : _handleSave,
+                          onPressed: _isSaveEnabled ? _handleSave : null,
                           icon: _isSaving
                               ? const SizedBox(
                                   width: 20,
@@ -996,8 +1084,8 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.brandTeal,
                             foregroundColor: Colors.white,
-                            disabledBackgroundColor: AppColors.brandTeal.withOpacity(0.6),
-                            disabledForegroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.brandTeal.withValues(alpha: 0.4),
+                            disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),

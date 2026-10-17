@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
@@ -7,6 +9,7 @@ import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
+import '../services/ocr_service.dart';
 import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
@@ -118,6 +121,99 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         transitionsBuilder: (_, __, ___, child) => child,
       ),
     );
+  }
+
+  Future<void> _handleScanMedicineCard() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (photo == null) {
+        // User cancelled camera
+        return;
+      }
+
+      List<String> candidates = [];
+      try {
+        final ocr = OcrService();
+        try {
+          candidates = await ocr.scanName(File(photo.path));
+        } finally {
+          await ocr.dispose();
+        }
+      } catch (ocrError) {
+        debugPrint('OCR scanning error: $ocrError');
+      }
+
+      if (candidates.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Couldn't read text from card, please enter details manually."),
+            backgroundColor: AppColors.statusLate,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+
+      final navigator = Navigator.of(context);
+      final result = await navigator.push(
+        MaterialPageRoute(
+          builder: (_) => AddManuallyScreen(
+            isFromScan: true,
+            candidates: candidates,
+            patientId: _isCaregiverMode ? _effectivePatientId : null,
+            patientName: _isCaregiverMode ? _patientName : null,
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => TodayDashboardScreen(
+              viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+              viewingPatientName: _isCaregiverMode ? _patientName : null,
+            ),
+          ),
+          (r) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Camera permission or device error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Camera access unavailable. Switching to manual entry.'),
+            backgroundColor: AppColors.statusLate,
+          ),
+        );
+        final navigator = Navigator.of(context);
+        final result = await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => AddManuallyScreen(
+              isFromScan: false,
+              patientId: _isCaregiverMode ? _effectivePatientId : null,
+              patientName: _isCaregiverMode ? _patientName : null,
+            ),
+          ),
+        );
+        if (result != null && mounted) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => TodayDashboardScreen(
+                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                viewingPatientName: _isCaregiverMode ? _patientName : null,
+              ),
+            ),
+            (r) => false,
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -336,29 +432,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     
                     // Scan Box
                     GestureDetector(
-                      onTap: () async {
-                        final navigator = Navigator.of(context);
-                        final result = await navigator.push(
-                          MaterialPageRoute(
-                            builder: (_) => AddManuallyScreen(
-                              isFromScan: true,
-                              patientId: _isCaregiverMode ? _effectivePatientId : null,
-                              patientName: _isCaregiverMode ? _patientName : null,
-                            ),
-                          ),
-                        );
-                        if (result != null && mounted) {
-                          navigator.pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) => TodayDashboardScreen(
-                                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
-                                viewingPatientName: _isCaregiverMode ? _patientName : null,
-                              ),
-                            ),
-                            (r) => false,
-                          );
-                        }
-                      },
+                      onTap: _handleScanMedicineCard,
                       child: CustomPaint(
                         painter: DashedRectPainter(
                           color: AppColors.brandTeal,
@@ -369,7 +443,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           decoration: BoxDecoration(
-                            color: AppColors.brandTeal.withOpacity(0.08),
+                            color: AppColors.brandTeal.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Column(
@@ -388,9 +462,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              Text(
-                                l10n?.scanMedicineLabel ?? 'Scan medicine label',
-                                style: const TextStyle(
+                              const Text(
+                                'Scan medicine card',
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.brandTeal,

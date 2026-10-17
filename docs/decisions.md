@@ -8,7 +8,7 @@ abandoned, or an AI-assisted step produced an error worth recording.
 
 Index number MS26926162 → digit sum 34 → 34 mod 5 = 4 → **HealthTech**.
 
-## OCR scope: printed labels only, English only
+## OCR scope: printed labels only, English only, medicine name only
 
 - **Decision:** scan pharmacy-printed labels / pill packets, not
   handwritten doctor prescriptions.
@@ -19,6 +19,7 @@ Index number MS26926162 → digit sum 34 → 34 mod 5 = 4 → **HealthTech**.
   Sri Lankan pharmacy labels are printed in English in practice. Sinhala
   script recognition was considered and rejected for the same
   risk/timeline reason — see `ui-ux.md` section on language support.
+- **Scope reduction to medicine name only:** OCR scope reduced to the medicine name only; dosage, frequency and instructions are entered manually, because name recognition on printed text is reliable while dosage parsing risks unsafe errors. Name candidates are matched against a known-drug list, with user-selectable fallbacks.
 - **Mitigation:** every scanned field is shown on an editable confirmation
   screen before it is saved, so a misread value can always be corrected.
 
