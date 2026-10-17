@@ -15,28 +15,48 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize LogService: sets up the logs folder and global error interception
-    await LogService.initialize();
+    // 1. Initialize LogService: sets up logs directory and error handlers
+    try {
+      await LogService.initialize();
+    } catch (e, st) {
+      debugPrint('LogService initialization bypassed: $e\n$st');
+    }
 
-    // Initialize NotificationService: creates notification channels and requests permissions
-    await NotificationService.instance.init();
+    // 2. Initialize NotificationService: creates notification channels
+    try {
+      await NotificationService.instance.init();
+    } catch (e, st) {
+      debugPrint('NotificationService initialization bypassed: $e\n$st');
+    }
 
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    // 3. Initialize Firebase
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e, st) {
+      debugPrint('Firebase initialization bypassed: $e\n$st');
+    }
 
-    // Initialize offline sync listener
-    SyncService.instance.startListening();
-    SyncService.instance.syncNow();
+    // 4. Initialize offline sync listener
+    try {
+      SyncService.instance.startListening();
+      SyncService.instance.syncNow();
+    } catch (e, st) {
+      debugPrint('SyncService initialization bypassed: $e\n$st');
+    }
 
+    // Always launch the application UI
     runApp(const MediCareApp());
   }, (error, stackTrace) {
     // Intercepts any unhandled asynchronous or zone errors
-    LogService.instance.recordPlatformError(
-      error,
-      stackTrace,
-      reason: 'Uncaught Zone / Asynchronous Exception',
-    );
+    try {
+      LogService.instance.recordPlatformError(
+        error,
+        stackTrace,
+        reason: 'Uncaught Zone / Asynchronous Exception',
+      );
+    } catch (_) {}
   });
 }
 
