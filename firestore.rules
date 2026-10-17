@@ -1,0 +1,161 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isPatient(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             getUserData(userId).role == 'patient';
+    }
+
+    function isCaregiver(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) &&
+             getUserData(userId).role == 'caregiver';
+    }
+
+    function isLinkedCaregiver(patientId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(patientId)) &&
+             'linkedCaregiverIds' in getUserData(patientId) &&
+             request.auth.uid in getUserData(patientId).linkedCaregiverIds;
+    }
+
+    function isLinkedPatient(caregiverId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(caregiverId)) &&
+             'linkedPatientIds' in getUserData(caregiverId) &&
+             request.auth.uid in getUserData(caregiverId).linkedPatientIds;
+    }
+
+    function getMedicineData(medicineId) {
+      return get(/databases/$(database)/documents/medicines/$(medicineId)).data;
+    }
+
+    function getPatientIdForDoseLog(logData) {
+      return ('patientId' in logData && logData.patientId != null && logData.patientId != '')
+             ? logData.patientId
+             : (exists(/databases/$(database)/documents/medicines/$(logData.medicineId))
+                 ? getMedicineData(logData.medicineId).patientId
+                 : '');
+    }
+
+    // --- USERS COLLECTION ---
+    match /users/{userId} {
+      // Patients and caregivers can read their own profile, or linked partner's profile
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isLinkedCaregiver(userId) ||
+        isLinkedPatient(userId)
+      );
+
+      // User creation: only for the authenticated user themselves
+      allow create: if isUser(userId);
+
+      // User update:
+      // 1. A user can update their own profile (e.g. name, language, patient managing linkedCaregivers).
+      // 2. OR a caregiver can append their own UID to the patient's linkedCaregiverIds
+      //    during invite code redemption (only adding themselves, no other changes).
+      allow update: if isAuthenticated() && (
+        isUser(userId) ||
+        (
+          isCaregiver(request.auth.uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['linkedCaregiverIds']) &&
+          request.resource.data.linkedCaregiverIds.hasAll(resource.data.linkedCaregiverIds) &&
+          request.auth.uid in request.resource.data.linkedCaregiverIds &&
+          request.resource.data.linkedCaregiverIds.size() == resource.data.linkedCaregiverIds.size() + 1
+        )
+      );
+
+      // Deletion of user profile is denied
+      allow delete: if false;
+
+      // Subcollection: users/{userId}/medicines/{medicineId}
+      match /medicines/{medicineId} {
+        allow read: if isAuthenticated() && (
+          request.auth.uid == userId ||
+          isLinkedCaregiver(userId)
+        );
+        allow create, update, delete: if isAuthenticated() &&
+                                         request.auth.uid == userId &&
+                                         isPatient(userId);
+      }
+    }
+
+    // --- MEDICINES COLLECTION ---
+    match /medicines/{medicineId} {
+      // Patient can read their own medicines. Linked caregiver has read-only access.
+      allow read: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        isLinkedCaregiver(resource.data.patientId)
+      );
+
+      // Only the patient can create, update, or delete medicines. Caregivers are NEVER allowed.
+      allow create: if isAuthenticated() &&
+                       request.resource.data.patientId == request.auth.uid &&
+                       isPatient(request.auth.uid);
+
+      allow update, delete: if isAuthenticated() &&
+                               resource.data.patientId == request.auth.uid &&
+                               isPatient(request.auth.uid);
+    }
+
+    // --- DOSE LOGS COLLECTION ---
+    match /dose_logs/{doseLogId} {
+      // Patient can read their own dose logs. Linked caregiver has read-only access.
+      allow read: if isAuthenticated() && (
+        getPatientIdForDoseLog(resource.data) == request.auth.uid ||
+        isLinkedCaregiver(getPatientIdForDoseLog(resource.data))
+      );
+
+      // Only the patient can create, update, or delete dose logs.
+      // Caregivers can NEVER mark a dose as taken, skipped, late, or missed.
+      allow create: if isAuthenticated() &&
+                       getPatientIdForDoseLog(request.resource.data) == request.auth.uid &&
+                       isPatient(request.auth.uid);
+
+      allow update, delete: if isAuthenticated() &&
+                               getPatientIdForDoseLog(resource.data) == request.auth.uid &&
+                               isPatient(request.auth.uid);
+    }
+
+    // --- INVITE CODES COLLECTION ---
+    match /inviteCodes/{code} {
+      // Authenticated users can read invite codes (caregiver reads code to verify during redemption)
+      allow read: if isAuthenticated();
+
+      // Only a patient can generate an invite code for themselves
+      allow create: if isAuthenticated() &&
+                       request.resource.data.patientId == request.auth.uid &&
+                       isPatient(request.auth.uid);
+
+      // Patient can manage their own code, or caregiver marks code as used during redemption
+      allow update: if isAuthenticated() && (
+        resource.data.patientId == request.auth.uid ||
+        (
+          resource.data.used == false &&
+          request.resource.data.used == true &&
+          request.resource.data.usedByCaregiverId == request.auth.uid
+        )
+      );
+
+      allow delete: if isAuthenticated() && resource.data.patientId == request.auth.uid;
+    }
+
+    // Everything else denied by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

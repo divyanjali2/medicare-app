@@ -18,6 +18,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   final _nameController = TextEditingController();
   final _ageController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _emergencyNameController = TextEditingController();
   final _emergencyPhoneController = TextEditingController();
 
@@ -26,12 +27,14 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
   bool _vibrationEnabled = true;
   int _reminderStyleIndex = 0;
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _ageController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     _emergencyNameController.dispose();
     _emergencyPhoneController.dispose();
     super.dispose();
@@ -41,6 +44,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final phone = _phoneController.text.trim();
+      final password = _passwordController.text.trim();
 
       if (name.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,6 +56,13 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
       if (phone.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter your phone number.')),
+        );
+        return;
+      }
+
+      if (password.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password must be at least 6 characters.')),
         );
         return;
       }
@@ -69,6 +80,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
         await AuthService.instance.signUpPatient(
           name: name,
           phoneNumber: phone,
+          password: password,
           age: age,
           emergencyContactName: _emergencyNameController.text.trim(),
           emergencyContactPhone: _emergencyPhoneController.text.trim(),
@@ -235,6 +247,30 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                   controller: _phoneController,
                   placeholder: l10n?.phoneNumberHint ?? '+94 77 123 4567',
                   keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 20),
+                
+                _buildFieldLabel('Password'),
+                _buildTextField(
+                  controller: _passwordController,
+                  placeholder: 'Create a password (min 6 characters)',
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.textMuted,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.trim().length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
                 
@@ -439,11 +475,11 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.send_to_mobile_outlined, size: 20),
+                              const Icon(Icons.person_add_rounded, size: 20),
                               const SizedBox(width: 12),
-                              Text(
-                                l10n?.sendVerificationCode ?? 'Send verification code',
-                                style: const TextStyle(
+                              const Text(
+                                'Sign Up',
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -479,10 +515,15 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
     required TextEditingController controller,
     required String placeholder,
     TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
       style: const TextStyle(
         color: AppColors.textDark,
         fontSize: 16,
@@ -493,6 +534,7 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         filled: true,
         fillColor: Colors.white,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderSubtle),
@@ -504,6 +546,14 @@ class _PatientSignupScreenState extends State<PatientSignupScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.brandTeal, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
         ),
       ),
     );

@@ -4,79 +4,357 @@ import 'package:intl/intl.dart';
 import '../models/medicine.dart';
 import '../widgets/pill_calendar.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/profile_menu_button.dart';
 import '../theme/app_theme.dart';
 import '../l10n/app_localizations.dart';
-import 'today_dashboard_screen.dart';
-import 'add_medicine_screen.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
 import 'caregiver_screen.dart';
-import 'welcome_screen.dart';
+import 'today_dashboard_screen.dart';
+import '../widgets/medicines_modal.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/local_db_service.dart';
 
 class PillCalendarScreen extends StatefulWidget {
-  const PillCalendarScreen({super.key});
+  final String? viewingPatientId;
+  final String? viewingPatientName;
+
+  const PillCalendarScreen({
+    super.key,
+    this.viewingPatientId,
+    this.viewingPatientName,
+  });
 
   @override
   State<PillCalendarScreen> createState() => _PillCalendarScreenState();
 }
 
-class _PillCalendarScreenState extends State<PillCalendarScreen> {
-  int _currentIndex = 1; // Calendar tab
-  
-  DateTime _month = DateTime(2026, 9);
-  DateTime? _selectedDay = DateTime(2026, 9, 22);
+class _CalendarDayDose {
+  final Medicine medicine;
+  final DateTime scheduledFor;
+  DoseStatus status;
+  final String? doseLogId;
 
-  // Mock data to match screenshot
-  final Map<DateTime, DoseStatus> _statusByDay = {
-    DateTime(2026, 9, 1): DoseStatus.taken,
-    DateTime(2026, 9, 2): DoseStatus.taken,
-    DateTime(2026, 9, 3): DoseStatus.taken,
-    DateTime(2026, 9, 4): DoseStatus.taken,
-    DateTime(2026, 9, 5): DoseStatus.late,
-    DateTime(2026, 9, 6): DoseStatus.taken,
-    DateTime(2026, 9, 7): DoseStatus.missed,
-    DateTime(2026, 9, 8): DoseStatus.taken,
-    DateTime(2026, 9, 9): DoseStatus.taken,
-    DateTime(2026, 9, 10): DoseStatus.late,
-    DateTime(2026, 9, 11): DoseStatus.taken,
-    DateTime(2026, 9, 12): DoseStatus.taken,
-    DateTime(2026, 9, 13): DoseStatus.taken,
-    DateTime(2026, 9, 14): DoseStatus.missed,
-    DateTime(2026, 9, 15): DoseStatus.late,
-    DateTime(2026, 9, 16): DoseStatus.taken,
-    DateTime(2026, 9, 17): DoseStatus.taken,
-    DateTime(2026, 9, 18): DoseStatus.taken,
-    DateTime(2026, 9, 19): DoseStatus.taken,
-    DateTime(2026, 9, 20): DoseStatus.late,
-    DateTime(2026, 9, 21): DoseStatus.missed,
-    DateTime(2026, 9, 22): DoseStatus.taken,
-    DateTime(2026, 9, 23): DoseStatus.taken,
-    DateTime(2026, 9, 24): DoseStatus.taken,
-    DateTime(2026, 9, 25): DoseStatus.late,
-    DateTime(2026, 9, 26): DoseStatus.taken,
-    DateTime(2026, 9, 27): DoseStatus.taken,
-    DateTime(2026, 9, 28): DoseStatus.missed,
-    DateTime(2026, 9, 29): DoseStatus.taken,
-    DateTime(2026, 9, 30): DoseStatus.late,
-  };
+  _CalendarDayDose({
+    required this.medicine,
+    required this.scheduledFor,
+    required this.status,
+    this.doseLogId,
+  });
+}
+
+class _PillCalendarScreenState extends State<PillCalendarScreen> {
+  final int _currentIndex = 1; // Calendar tab
+  String _effectivePatientId = 'p1';
+  bool _isCaregiverMode = false;
+  String _patientName = '';
+
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime? _selectedDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
+  Map<DateTime, DoseStatus> _statusByDay = {};
+  final Map<String, Medicine> _medicines = {};
+  final Map<String, DoseLog> _monthLogsByKey = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvePatient();
+  }
+
+  Future<void> _resolvePatient() async {
+    final currentUid = AuthService.instance.currentUser?.uid;
+    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+
+    String patientId = widget.viewingPatientId ?? '';
+    bool caregiverMode = widget.viewingPatientId != null;
+
+    if (profile?.role == UserRole.caregiver) {
+      caregiverMode = true;
+      if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+        patientId = profile.linkedPatientIds.first;
+      }
+      if (profile!.linkedPatientIds.isNotEmpty && !profile.linkedPatientIds.contains(patientId)) {
+        patientId = profile.linkedPatientIds.first;
+      }
+    }
+
+    if (patientId.isEmpty) {
+      patientId = currentUid ?? (profile?.uid ?? 'p1');
+    }
+
+    if (mounted) {
+      setState(() {
+        _effectivePatientId = patientId;
+        _isCaregiverMode = caregiverMode;
+        _patientName = widget.viewingPatientName ?? profile?.name ?? 'Patient';
+      });
+      await _loadCalendarData();
+    }
+  }
+
+  /// Loads real medicines and dose logs from offline database and Firestore,
+  /// then calculates adherence for each day of the active month using summarizeDay.
+  Future<void> _loadCalendarData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final patientId = _effectivePatientId;
+
+      // 1. Fetch medicines from local DB & Firestore
+      _medicines.clear();
+
+      try {
+        final localMeds = await LocalDbService.instance.getMedicines(patientId);
+        for (final m in localMeds) {
+          _medicines[m.id] = m;
+        }
+      } catch (e) {
+        debugPrint('Error loading local medicines for calendar: $e');
+      }
+
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('medicines')
+            .where('patientId', isEqualTo: patientId)
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
+        for (final doc in snap.docs) {
+          final data = doc.data();
+          data['id'] ??= doc.id;
+          final med = Medicine.fromMap(data);
+          _medicines[med.id] = med;
+          await LocalDbService.instance.upsertMedicine(med);
+        }
+      } catch (_) {}
+
+      try {
+        final subSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(patientId)
+            .collection('medicines')
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
+        for (final doc in subSnap.docs) {
+          final data = doc.data();
+          data['id'] ??= doc.id;
+          final med = Medicine.fromMap(data);
+          _medicines[med.id] = med;
+          await LocalDbService.instance.upsertMedicine(med);
+        }
+      } catch (_) {}
+
+      // 2. Fetch dose logs for the month
+      _monthLogsByKey.clear();
+      final monthStart = DateTime(_month.year, _month.month, 1);
+      final monthEnd = DateTime(_month.year, _month.month + 1, 1);
+
+      try {
+        final localLogs = await LocalDbService.instance.getDoseLogsForRange(monthStart, monthEnd);
+        for (final log in localLogs) {
+          final key = '${log.medicineId}_${log.scheduledFor.year}_${log.scheduledFor.month}_${log.scheduledFor.day}_${log.scheduledFor.hour}_${log.scheduledFor.minute}';
+          _monthLogsByKey[key] = log;
+          final dayKey = '${log.medicineId}_${log.scheduledFor.year}_${log.scheduledFor.month}_${log.scheduledFor.day}';
+          _monthLogsByKey.putIfAbsent(dayKey, () => log);
+        }
+      } catch (e) {
+        debugPrint('Error loading local logs for calendar: $e');
+      }
+
+      try {
+        final startStr = monthStart.toIso8601String();
+        final endStr = monthEnd.toIso8601String();
+        final remoteLogs = await FirebaseFirestore.instance
+            .collection('dose_logs')
+            .where('scheduledFor', isGreaterThanOrEqualTo: startStr)
+            .where('scheduledFor', isLessThan: endStr)
+            .get()
+            .timeout(const Duration(milliseconds: 1500));
+        for (final doc in remoteLogs.docs) {
+          final data = doc.data();
+          data['id'] ??= doc.id;
+          final log = DoseLog.fromMap(data);
+          final key = '${log.medicineId}_${log.scheduledFor.year}_${log.scheduledFor.month}_${log.scheduledFor.day}_${log.scheduledFor.hour}_${log.scheduledFor.minute}';
+          _monthLogsByKey[key] = log;
+          final dayKey = '${log.medicineId}_${log.scheduledFor.year}_${log.scheduledFor.month}_${log.scheduledFor.day}';
+          _monthLogsByKey.putIfAbsent(dayKey, () => log);
+          await LocalDbService.instance.upsertDoseLog(log);
+        }
+      } catch (_) {}
+
+      // 3. Calculate summarizeDay for each day of the month
+      final Map<DateTime, DoseStatus> newStatusByDay = {};
+      final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+
+      for (int d = 1; d <= daysInMonth; d++) {
+        final dayDate = DateTime(_month.year, _month.month, d);
+        final dayDoses = _getDosesForDay(dayDate);
+        if (dayDoses.isNotEmpty) {
+          final logs = dayDoses
+              .map((dose) => DoseLog(
+                    id: dose.doseLogId ?? 'gen_${dose.medicine.id}_${dayDate.day}',
+                    medicineId: dose.medicine.id,
+                    scheduledFor: dose.scheduledFor,
+                    status: dose.status,
+                  ))
+              .toList();
+
+          final status = summarizeDay(logs);
+          if (status != null) {
+            newStatusByDay[dayDate] = status;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _statusByDay = newStatusByDay;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading calendar data: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Gets all doses scheduled for a specific day from the patient's active medicines.
+  List<_CalendarDayDose> _getDosesForDay(DateTime day) {
+    final List<_CalendarDayDose> result = [];
+    final dayNormalized = DateTime(day.year, day.month, day.day);
+    final now = DateTime.now();
+    final todayNormalized = DateTime(now.year, now.month, now.day);
+
+    for (final med in _medicines.values) {
+      final medCreatedDay = DateTime(med.createdAt.year, med.createdAt.month, med.createdAt.day);
+      // Skip days before medicine was added
+      if (dayNormalized.isBefore(medCreatedDay)) {
+        continue;
+      }
+
+      final times = med.scheduledTimes.isNotEmpty
+          ? med.scheduledTimes
+          : [DateTime(day.year, day.month, day.day, 8, 0)];
+
+      for (final t in times) {
+        final scheduledDateTime = DateTime(day.year, day.month, day.day, t.hour, t.minute);
+        final fullKey = '${med.id}_${day.year}_${day.month}_${day.day}_${t.hour}_${t.minute}';
+        final dayKey = '${med.id}_${day.year}_${day.month}_${day.day}';
+
+        final log = _monthLogsByKey[fullKey] ?? _monthLogsByKey[dayKey];
+
+        DoseStatus doseStatus;
+        if (log != null) {
+          doseStatus = log.status;
+        } else {
+          // If no log exists:
+          // Past days: missed. Today past dose time (>60m ago): missed. Today upcoming/future: pending.
+          if (dayNormalized.isBefore(todayNormalized)) {
+            doseStatus = DoseStatus.missed;
+          } else if (dayNormalized.isAtSameMomentAs(todayNormalized)) {
+            if (scheduledDateTime.isBefore(now.subtract(const Duration(hours: 1)))) {
+              doseStatus = DoseStatus.missed;
+            } else {
+              doseStatus = DoseStatus.pending;
+            }
+          } else {
+            doseStatus = DoseStatus.pending;
+          }
+        }
+
+        result.add(
+          _CalendarDayDose(
+            medicine: med,
+            scheduledFor: scheduledDateTime,
+            status: doseStatus,
+            doseLogId: log?.id,
+          ),
+        );
+      }
+    }
+
+    result.sort((a, b) => a.scheduledFor.compareTo(b.scheduledFor));
+    return result;
+  }
+
+  /// Marks a dose as taken and persists to local DB and Firestore.
+  Future<void> _markDoseTaken(_CalendarDayDose dose) async {
+    final now = DateTime.now();
+    final logId = dose.doseLogId ??
+        'log_${dose.medicine.id}_${dose.scheduledFor.millisecondsSinceEpoch}';
+
+    // If taken within 60 mins of schedule -> taken; if >60 mins late -> late
+    final diffMinutes = now.difference(dose.scheduledFor).inMinutes;
+    final newStatus = diffMinutes > 60 ? DoseStatus.late : DoseStatus.taken;
+
+    final newLog = DoseLog(
+      id: logId,
+      medicineId: dose.medicine.id,
+      scheduledFor: dose.scheduledFor,
+      status: newStatus,
+      respondedAt: now,
+      synced: false,
+    );
+
+    // Save locally
+    await LocalDbService.instance.upsertDoseLog(newLog);
+
+    // Push to Firestore if connected
+    try {
+      await FirebaseFirestore.instance.collection('dose_logs').doc(logId).set(
+        newLog.toMap()..['patientId'] = _effectivePatientId,
+        SetOptions(merge: true),
+      );
+    } catch (_) {}
+
+    // Reload calendar data to refresh color dots and panel
+    await _loadCalendarData();
+  }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
-    
-    if (index == 0) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
-        (r) => false,
+    if (index == 2) {
+      showMedicinesModal(
+        context: context,
+        patientId: _effectivePatientId,
+        patientName: _patientName,
+        isCaregiver: _isCaregiverMode,
+        onMedicinesChanged: _loadCalendarData,
       );
-    } else if (index == 2) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AddMedicineScreen()),
-        (r) => false,
-      );
-    } else if (index == 3) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-        (r) => false,
-      );
+      return;
     }
+    Widget nextScreen;
+    if (_isCaregiverMode) {
+      if (index == 0) {
+        nextScreen = TodayDashboardScreen(
+          viewingPatientId: _effectivePatientId,
+          viewingPatientName: _patientName,
+        );
+      } else if (index == 3) {
+        nextScreen = const CaregiverScreen();
+      } else {
+        return;
+      }
+    } else {
+      if (index == 0) {
+        nextScreen = const TodayDashboardScreen();
+      } else {
+        return;
+      }
+    }
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
+        transitionsBuilder: (_, __, ___, child) => child,
+      ),
+    );
   }
 
   @override
@@ -94,6 +372,22 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  if (Navigator.of(context).canPop())
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textDark),
+                        ),
+                      ),
+                    ),
                   Expanded(
                     child: Row(
                       children: [
@@ -101,11 +395,15 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: AppColors.brandTeal,
+                            color: _isCaregiverMode ? AppColors.brandNavy : AppColors.brandTeal,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Center(
-                            child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
+                          child: Center(
+                            child: Icon(
+                              _isCaregiverMode ? Icons.people_outline : Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -123,11 +421,14 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                                 ),
                               ),
                               Text(
-                                l10n?.patientViewSubtitle ?? 'Patient view',
+                                _isCaregiverMode
+                                    ? 'Caregiver View • Patient Calendar'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textMuted,
+                                  color: _isCaregiverMode ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiverMode ? FontWeight.w600 : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -137,63 +438,56 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const LanguagePillSelector(),
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LanguagePillSelector(),
+                      SizedBox(width: 8),
+                      ProfileMenuButton(),
+                    ],
+                  ),
                 ],
               ),
             ),
-            
-            // Action Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+            if (_isCaregiverMode)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.brandNavy.withValues(alpha: 0.25)),
+                ),
+                child: Row(
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-                          (r) => false,
-                        );
-                      },
-                      icon: const Icon(Icons.person_outline, size: 18),
-                      label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    const Icon(Icons.shield_outlined, color: AppColors.brandNavy, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Monitoring $_patientName\'s calendar',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.brandNavy,
+                        ),
                       ),
                     ),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                          (r) => false,
-                        );
-                      },
-                      icon: const Icon(Icons.logout, size: 18),
-                      label: Text(l10n?.signOutButton ?? 'Sign out'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    if (Navigator.of(context).canPop())
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Text(
+                          l10n?.exit ?? 'Exit',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.brandNavy,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
-            ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Divider(color: AppColors.borderSubtle),
-            ),
             
             Expanded(
               child: ListView(
@@ -215,16 +509,46 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
                       color: AppColors.textMuted,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8.0),
+                      child: LinearProgressIndicator(
+                        backgroundColor: Color(0xFFE5E3DD),
+                        color: AppColors.primaryTeal,
+                        minHeight: 3,
+                      ),
+                    ),
                   PillCalendar(
                     month: _month,
                     statusByDay: _statusByDay,
                     selectedDay: _selectedDay,
-                    onMonthChange: (m) => setState(() => _month = m),
+                    onMonthChange: (m) {
+                      setState(() {
+                        _month = m;
+                        _selectedDay = DateTime(m.year, m.month, 1);
+                      });
+                      _loadCalendarData();
+                    },
                     onDayTap: (d) => setState(() => _selectedDay = d),
                   ),
                   const SizedBox(height: 16),
-                  if (_selectedDay != null) _DayDetailPanel(day: _selectedDay!),
+                  if (_selectedDay != null)
+                    _DayDetailPanel(
+                      day: _selectedDay!,
+                      doses: _getDosesForDay(_selectedDay!),
+                      onTakeDose: _markDoseTaken,
+                      onMedicineTap: (med) {
+                        showMedicineDetailModal(
+                          context: context,
+                          medicine: med,
+                          isCaregiver: _isCaregiverMode,
+                          patientId: _effectivePatientId,
+                          onChanged: _loadCalendarData,
+                        );
+                      },
+                      isCaregiverMode: _isCaregiverMode,
+                    ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -248,31 +572,40 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
           onTap: _onTabTapped,
           items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Today',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: l10n?.navToday ?? 'Today',
             ),
             BottomNavigationBarItem(
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.brandTeal.withOpacity(0.15),
+                  color: AppColors.brandTeal.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.calendar_month, color: AppColors.brandTeal),
               ),
-              label: 'Calendar',
+              label: l10n?.navCalendar ?? 'Calendar',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.add),
-              label: 'Add',
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.medication_outlined),
+              activeIcon: const Icon(Icons.medication),
+              label: l10n?.navMedicines ?? 'Medicines',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Care',
-            ),
+            if (_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_outline),
+                activeIcon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCF0F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people, color: Color(0xFF0E7485)),
+                ),
+                label: l10n?.navCare ?? 'Care',
+              ),
           ],
         ),
       ),
@@ -282,19 +615,45 @@ class _PillCalendarScreenState extends State<PillCalendarScreen> {
 
 class _DayDetailPanel extends StatelessWidget {
   final DateTime day;
+  final List<_CalendarDayDose> doses;
+  final ValueChanged<_CalendarDayDose> onTakeDose;
+  final ValueChanged<Medicine>? onMedicineTap;
+  final bool isCaregiverMode;
 
-  const _DayDetailPanel({required this.day});
+  const _DayDetailPanel({
+    required this.day,
+    required this.doses,
+    required this.onTakeDose,
+    this.onMedicineTap,
+    required this.isCaregiverMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final localeStr = Localizations.localeOf(context).toString();
-    final dateStr = DateFormat('MMMM d', localeStr).format(day);
-    
+    final locale = Localizations.maybeLocaleOf(context);
+    final localeStr = locale?.toString() ?? 'en';
+    String dateStr;
+    try {
+      dateStr = DateFormat('EEEE, MMMM d, yyyy', localeStr).format(day);
+    } catch (_) {
+      dateStr = DateFormat('EEEE, MMMM d, yyyy').format(day);
+    }
+
+    final logs = doses
+        .map((d) => DoseLog(
+              id: d.doseLogId ?? '',
+              medicineId: d.medicine.id,
+              scheduledFor: d.scheduledFor,
+              status: d.status,
+            ))
+        .toList();
+    final dayStatus = summarizeDay(logs);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF9F6), // Slightly off-white matching mockup
+        color: const Color(0xFFFAF9F6),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE5E3DD)),
       ),
@@ -303,68 +662,300 @@ class _DayDetailPanel extends StatelessWidget {
         children: [
           Text(
             dateStr,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  l10n?.allTakenTitle ?? 'All taken',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textDark,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: AppColors.statusTaken,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 20),
-              ),
-            ],
-          ),
+          const SizedBox(height: 10),
+          _buildSummaryHeader(DateFormat('MMMM d', localeStr).format(day), dayStatus, l10n),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
             child: Divider(color: AppColors.borderSubtle),
           ),
-          // Mock dose rows
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Metformin',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
+          if (doses.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No medicines scheduled for this day.',
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
-              Text(
-                '8:00 AM',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 15),
-              ),
-            ],
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: doses.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final dose = doses[index];
+                return _buildDoseRow(context, dose);
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryHeader(String dayMonthStr, DoseStatus? status, AppLocalizations? l10n) {
+    String title;
+    Color iconBg;
+    IconData icon;
+
+    switch (status) {
+      case DoseStatus.taken:
+        title = l10n?.allTakenTitle ?? 'All taken';
+        iconBg = AppColors.statusTaken;
+        icon = Icons.check;
+        break;
+      case DoseStatus.late:
+        title = 'Taken late';
+        iconBg = AppColors.statusLate;
+        icon = Icons.done_all;
+        break;
+      case DoseStatus.skipped:
+        title = 'Dose skipped';
+        iconBg = AppColors.statusLate;
+        icon = Icons.skip_next;
+        break;
+      case DoseStatus.missed:
+        title = 'Doses missed';
+        iconBg = AppColors.statusMissed;
+        icon = Icons.priority_high;
+        break;
+      case DoseStatus.pending:
+        title = 'Pending doses';
+        iconBg = AppColors.primaryTeal;
+        icon = Icons.schedule;
+        break;
+      case null:
+        title = 'No doses';
+        iconBg = AppColors.textMuted;
+        icon = Icons.event_available;
+        break;
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            '$dayMonthStr: $title',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textDark,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+        ),
+        const SizedBox(width: 8),
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: iconBg,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDoseRow(BuildContext context, _CalendarDayDose dose) {
+    final timeStr = DateFormat('h:mm a').format(dose.scheduledFor);
+
+    return InkWell(
+      onTap: () => onMedicineTap?.call(dose.medicine),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFEFECE6)),
+        ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.medication,
+              color: AppColors.primaryTeal,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dose.medicine.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                if (dose.medicine.dosage.isNotEmpty)
+                  Text(
+                    dose.medicine.dosage,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               Text(
-                'Lisinopril',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
+                timeStr,
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              Text(
-                '1:00 PM',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 15),
-              ),
+              const SizedBox(height: 4),
+              _buildStatusAction(dose),
             ],
           ),
         ],
+      ),
+    ),
+  );
+  }
+
+  Widget _buildStatusAction(_CalendarDayDose dose) {
+    if (dose.status == DoseStatus.taken) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.statusTaken.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check, size: 14, color: Color(0xFF167B46)),
+            SizedBox(width: 4),
+            Text(
+              'Taken',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF167B46),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (dose.status == DoseStatus.late) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.statusLate.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Late',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8B4D00),
+          ),
+        ),
+      );
+    }
+
+    if (dose.status == DoseStatus.skipped) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.statusLate.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Skipped',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8B4D00),
+          ),
+        ),
+      );
+    }
+
+    if (dose.status == DoseStatus.missed) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppColors.statusMissed.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Missed',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFB12F24),
+          ),
+        ),
+      );
+    }
+
+    // Pending: if not caregiver, allow marking as taken directly
+    if (!isCaregiverMode) {
+      return GestureDetector(
+        onTap: () => onTakeDose(dose),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primaryTeal,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'Mark Taken',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5E7EB),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Text(
+        'Pending',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textMuted,
+        ),
       ),
     );
   }

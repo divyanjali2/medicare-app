@@ -5,8 +5,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'services/log_service.dart';
+import 'services/notification_service.dart';
+import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
-import 'screens/welcome_screen.dart';
+import 'widgets/role_gate.dart';
 
 /// Entry point.
 void main() {
@@ -16,9 +18,17 @@ void main() {
     // Initialize LogService: sets up the logs folder and global error interception
     await LogService.initialize();
 
+    // Initialize NotificationService: creates notification channels and requests permissions
+    await NotificationService.instance.init();
+
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // Initialize offline sync listener
+    SyncService.instance.startListening();
+    SyncService.instance.syncNow();
+
     runApp(const MediCareApp());
   }, (error, stackTrace) {
     // Intercepts any unhandled asynchronous or zone errors
@@ -59,9 +69,7 @@ class _MediCareAppState extends State<MediCareApp> {
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // TODO: swap for an auth-gated root once AuthService is wired up —
-      // this currently opens straight to the patient dashboard.
-      home: const WelcomeScreen(),
+      home: const RoleGate(),
     );
   }
 }

@@ -27,7 +27,9 @@ class LogService {
 
     // 1. Capture Flutter framework errors (widget build, layout, render)
     FlutterError.onError = (FlutterErrorDetails details) async {
-      await instance.recordFlutterError(details);
+      try {
+        await instance.recordFlutterError(details);
+      } catch (_) {}
       if (kDebugMode) {
         FlutterError.presentError(details);
       }
@@ -35,13 +37,17 @@ class LogService {
 
     // 2. Capture unhandled asynchronous Dart & platform errors
     PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-      instance.recordPlatformError(error, stack);
+      try {
+        instance.recordPlatformError(error, stack);
+      } catch (_) {}
       return true; // Marked as handled
     };
 
     // 3. Graceful UI fallback for widget crashes
     ErrorWidget.builder = (FlutterErrorDetails details) {
-      instance.recordFlutterError(details);
+      try {
+        instance.recordFlutterError(details);
+      } catch (_) {}
       return Material(
         color: Colors.white,
         child: SafeArea(
@@ -94,10 +100,11 @@ class LogService {
       return _logDir!;
     }
     await _ensureDirectoryInitialized();
-    return _logDir!;
+    return _logDir ?? Directory('logs');
   }
 
   Future<void> _ensureDirectoryInitialized() async {
+    if (kIsWeb) return;
     if (_initCompleter != null) {
       return _initCompleter!.future;
     }
@@ -138,19 +145,31 @@ class LogService {
 
   /// Records an uncaught Flutter framework error.
   Future<void> recordFlutterError(FlutterErrorDetails details) async {
-    final contextInfo = <String, dynamic>{
-      'library': details.library,
-      'context': details.context?.toString(),
-      'summary': details.summary.toString(),
-    };
+    try {
+      String? contextStr;
+      try {
+        contextStr = details.context?.toString();
+      } catch (_) {}
 
-    await logError(
-      details.exception,
-      stackTrace: details.stack,
-      reason: 'Flutter Framework Error',
-      category: 'FLUTTER_ERROR',
-      context: contextInfo,
-    );
+      String? summaryStr;
+      try {
+        summaryStr = details.summary.toString();
+      } catch (_) {}
+
+      final contextInfo = <String, dynamic>{
+        'library': details.library ?? 'flutter',
+        'context': contextStr,
+        'summary': summaryStr,
+      };
+
+      await logError(
+        details.exception,
+        stackTrace: details.stack,
+        reason: 'Flutter Framework Error',
+        category: 'FLUTTER_ERROR',
+        context: contextInfo,
+      );
+    } catch (_) {}
   }
 
   /// Records an uncaught platform or asynchronous Dart error.
@@ -248,6 +267,7 @@ class LogService {
 
   /// Internal helper to write content into the log files.
   Future<void> _writeToLogFiles(String content, String dateSuffix) async {
+    if (kIsWeb) return;
     try {
       final dir = await logsDirectory;
       final dailyFile = File('${dir.path}${Platform.pathSeparator}error_$dateSuffix.log');

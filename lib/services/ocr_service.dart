@@ -2,63 +2,84 @@ import 'dart:io';
 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-/// Scans a photographed, PRINTED medicine label and parses out likely
-/// medicine fields.
+/// Service to perform on-device OCR on photographed medicine labels/cards
+/// using Google ML Kit (Latin script).
 ///
-/// Scope boundary (documented decision, see docs/decisions.md):
-/// - OCR targets printed pharmacy labels / pill packets only, which are
-///   reliably in English in the Sri Lankan context.
-/// - Handwritten doctor prescriptions and Sinhala-script recognition are
-///   explicitly OUT of scope — both are high-risk, low-accuracy problems
-///   for an 8-week build. Users confirm/correct every scanned field before
-///   it is saved (see AddMedicineFlow -> OcrConfirmationScreen).
+/// Scope: Extracts candidate medicine names only. Dosage, frequency, and
+/// instructions are always entered manually for safety (see docs/decisions.md).
 class OcrService {
   final _recognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
-  Future<ParsedLabel> scanLabel(File imageFile) async {
-    final inputImage = InputImage.fromFile(imageFile);
-    final result = await _recognizer.processImage(inputImage);
-    return _parse(result.text);
+  static const List<String> _knownDrugs = [
+    'Metformin',
+    'Amlodipine',
+    'Lisinopril',
+    'Atorvastatin',
+    'Paracetamol',
+    'Losartan',
+    'Aspirin',
+    'Omeprazole',
+    'Insulin',
+  ];
+
+  /// Pure function that extracts candidate medicine names from a list of OCR lines.
+  ///
+  /// Rules:
+  /// - Lines of 2 characters or fewer are ignored.
+  /// - Known drugs from [_knownDrugs] that appear anywhere in the lines (case-insensitive)
+  ///   are placed first.
+  /// - Followed by the first 4 raw lines as fallback suggestions.
+  /// - No duplicates are allowed.
+  /// - Empty input returns an empty list.
+  static List<String> extractCandidates(List<String> rawLines) {
+    final validLines = rawLines
+        .map((l) => l.trim())
+        .where((l) => l.length > 2)
+        .toList();
+
+    if (validLines.isEmpty) return [];
+
+    final candidates = <String>[];
+
+    // 1. First, check for any known drugs (case-insensitive) appearing in any line
+    for (final drug in _knownDrugs) {
+      final matches = validLines.any(
+        (line) => line.toLowerCase().contains(drug.toLowerCase()),
+      );
+      if (matches && !candidates.any((c) => c.toLowerCase() == drug.toLowerCase())) {
+        candidates.add(drug);
+      }
+    }
+
+    // 2. Then, add the first 4 raw lines as fallback suggestions, with no duplicates
+    for (final line in validLines.take(4)) {
+      if (!candidates.any((c) => c.toLowerCase() == line.toLowerCase())) {
+        candidates.add(line);
+      }
+    }
+
+    return candidates;
   }
 
-  /// Very small rule-based parser over the raw OCR text. Looks for common
-  /// dosage/frequency patterns. This is intentionally simple — the user
-  /// always reviews and corrects the result on the confirmation screen,
-  /// so parser mistakes are not safety-critical.
-  ParsedLabel _parse(String rawText) {
-    final dosageMatch = RegExp(r'(\d+(\.\d+)?\s?mg)', caseSensitive: false)
-        .firstMatch(rawText);
-    final freqMatch = RegExp(
-      r'(once|twice|three times|1x|2x|3x)\s?(daily|a day)?',
-      caseSensitive: false,
-    ).firstMatch(rawText);
-
-    final firstLine = rawText.split('\n').firstWhere(
-          (l) => l.trim().isNotEmpty,
-          orElse: () => '',
-        );
-
-    return ParsedLabel(
-      rawText: rawText,
-      guessedName: firstLine.trim(),
-      guessedDosage: dosageMatch?.group(0) ?? '',
-      guessedFrequency: freqMatch?.group(0) ?? '',
-    );
+  /// Scans the given image file and returns a list of candidate medicine names.
+  /// Gracefully catches platform channel errors (e.g. MissingPluginException on Web or
+  /// desktop) and returns an empty list without crashing.
+  Future<List<String>> scanName(File imageFile) async {
+    try {
+      final inputImage = InputImage.fromFile(imageFile);
+      final result = await _recognizer.processImage(inputImage);
+      final lines = result.text.split('\n');
+      return extractCandidates(lines);
+    } catch (e) {
+      return [];
+    }
   }
 
-  void dispose() => _recognizer.close();
-}
-
-class ParsedLabel {
-  final String rawText;
-  final String guessedName;
-  final String guessedDosage;
-  final String guessedFrequency;
-
-  const ParsedLabel({
-    required this.rawText,
-    required this.guessedName,
-    required this.guessedDosage,
-    required this.guessedFrequency,
-  });
+  Future<void> dispose() async {
+    try {
+      await _recognizer.close();
+    } catch (_) {
+      // Ignored: On web/unsupported platforms closing recognizer can throw MissingPluginException
+    }
+  }
 }
