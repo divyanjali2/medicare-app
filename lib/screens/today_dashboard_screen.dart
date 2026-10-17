@@ -6,6 +6,7 @@ import '../models/medicine.dart';
 import '../models/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/local_db_service.dart';
+import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/medicine_card.dart';
 import '../widgets/language_selector.dart';
@@ -276,6 +277,14 @@ class _TodayDashboardScreenState extends State<TodayDashboardScreen> {
           _streakDays = calculatedStreak;
           _isLoading = false;
         });
+
+        // Evaluate patient reminder (5 mins before) and caregiver alert (20 mins missed)
+        NotificationService.instance.checkDoseNotifications(
+          medicines: medicinesMap.values.toList(),
+          doseLogs: todayLogs,
+          patientId: patientId,
+          patientName: _userName.isNotEmpty ? _userName : (profile?.name ?? 'Patient'),
+        );
       }
     } catch (e, st) {
       debugPrint('Error in _loadDashboardData: $e\n$st');

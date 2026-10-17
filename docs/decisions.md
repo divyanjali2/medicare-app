@@ -66,6 +66,20 @@ Index number MS26926162 → digit sum 34 → 34 mod 5 = 4 → **HealthTech**.
   2. **Service Guard Layer:** `LocalDbService` validates the caller's role and data ownership in a shared helper (`enforcePatientWritePermission`), throwing `PermissionDeniedException` if a caregiver attempts to add, modify, or delete medicines or write dose logs.
   3. **Firestore Security Rules:** Server-side rules (`firestore.rules`) enforce that caregivers can only read patient medicines and dose logs if linked in `linkedCaregiverIds`, and reject all write attempts.
 
+## Notification Timings: 5-minute Patient Reminder & 20-minute Caregiver Escalation
+
+- **Decision:**
+  - **Patient Reminder (Pre-Dose):** Exactly 5 minutes before scheduled dose time (e.g., 8:55 AM for a 9:00 AM medicine), the patient receives a notification: `"💊 Medicine Reminder: <MedicineName> - Upcoming dose in 5 minutes (<Time>). Please get your <Dosage> ready!"`.
+  - **Caregiver Alert (Post-Dose Escalation):** If 20 minutes elapse after the scheduled time (e.g., 9:20 AM for a 9:00 AM medicine) and the dose has NOT been marked as taken, a high-priority alert is triggered for the caregiver: `"⚠️ Caregiver Alert: Missed Medicine - <PatientName> has not taken <MedicineName> (<Dosage>) scheduled for <Time> (20 minutes past due)."`.
+- **Why:**
+  - 5 minutes ahead gives elderly patients sufficient preparation time to fetch water, retrieve pill boxes, and safely take their medication on time.
+  - 20 minutes grace period prevents false-positive alerts while ensuring caregivers are notified rapidly enough to intervene before adherence lapses or double-dosing risks occur.
+- **Offline & Reliability Guarantees:**
+  - Managed via `NotificationService` singleton using `flutter_local_notifications` with Android notification channels (`dose_reminders` and `caregiver_alerts`).
+  - Evaluated on dashboard load, app resume, and background periodic timer.
+  - In-memory and local tracking guarantees deduplication so the patient and caregiver are never spammed.
+  - Automatically records overdue status locally in SQLite (`DoseStatus.missed`) and syncs to Firestore `caregiver_alerts` collection.
+
 ## Failure log
 
 Record AI-assisted steps here as they happen during implementation,
@@ -73,3 +87,4 @@ including the prompt used and what broke, e.g.:
 
 - _(template)_ **Prompt:** "…" → **Result:** error / wrong output →
   **Fix:** what was changed and why.
+

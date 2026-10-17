@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'services/log_service.dart';
+import 'services/notification_service.dart';
 import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/role_gate.dart';
@@ -16,6 +17,9 @@ void main() {
 
     // Initialize LogService: sets up the logs folder and global error interception
     await LogService.initialize();
+
+    // Initialize NotificationService: creates notification channels and requests permissions
+    await NotificationService.instance.init();
 
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
