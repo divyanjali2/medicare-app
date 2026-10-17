@@ -34,10 +34,10 @@ class AddManuallyScreen extends StatefulWidget {
   });
 
   @override
-  State<AddManuallyScreen> createState() => _AddManuallyScreenState();
+  State<AddManuallyScreen> createState() => AddManuallyScreenState();
 }
 
-class _AddManuallyScreenState extends State<AddManuallyScreen> {
+class AddManuallyScreenState extends State<AddManuallyScreen> {
   GlobalKey<FormState>? _formKey;
   GlobalKey<FormState> get formKey => _formKey ??= GlobalKey<FormState>();
 
@@ -63,22 +63,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
   String? _frequency;
   String get frequency => _frequency ?? widget.existingMedicine?.frequency ?? '';
 
-  String? _selectedTimeOfDay;
-  String get selectedTimeOfDay {
-    if (_selectedTimeOfDay != null) return _selectedTimeOfDay!;
-    if (widget.existingMedicine?.scheduledTimes.isNotEmpty == true) {
-      final hour = widget.existingMedicine!.scheduledTimes.first.hour;
-      if (hour >= 17 && hour < 20) {
-        _selectedTimeOfDay = 'Evening';
-      } else if (hour >= 20 || hour < 5) {
-        _selectedTimeOfDay = 'Night';
-      } else {
-        _selectedTimeOfDay = 'Morning';
-      }
-      return _selectedTimeOfDay!;
-    }
-    return _selectedTimeOfDay ??= 'Morning';
-  }
+  Set<String> _selectedTimesOfDay = {'Morning'};
+  Set<String> get selectedTimesOfDay => _selectedTimesOfDay;
+  String get selectedTimeOfDay => _selectedTimesOfDay.isNotEmpty ? _selectedTimesOfDay.first : 'Morning';
 
   bool _isSaving = false;
   bool _isCaregiver = false;
@@ -91,7 +78,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     final hasName = (_nameController?.text ?? '').trim().isNotEmpty;
     final hasDosage = (_dosageController?.text ?? '').trim().isNotEmpty;
     final hasFreq = (_frequency ?? '').trim().isNotEmpty;
-    return hasName && hasDosage && hasFreq && !_isSaving;
+    return hasName && hasDosage && hasFreq && _selectedTimesOfDay.isNotEmpty && !_isSaving;
   }
 
   static const List<String> _frequencies = [
@@ -133,17 +120,21 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
       _frequency = null;
     }
 
+    _selectedTimesOfDay = <String>{};
     if (widget.existingMedicine?.scheduledTimes.isNotEmpty == true) {
-      final hour = widget.existingMedicine!.scheduledTimes.first.hour;
-      if (hour >= 17 && hour < 20) {
-        _selectedTimeOfDay = 'Evening';
-      } else if (hour >= 20 || hour < 5) {
-        _selectedTimeOfDay = 'Night';
-      } else {
-        _selectedTimeOfDay = 'Morning';
+      for (final st in widget.existingMedicine!.scheduledTimes) {
+        final hour = st.hour;
+        if (hour >= 17 && hour < 20) {
+          _selectedTimesOfDay.add('Evening');
+        } else if (hour >= 20 || hour < 5) {
+          _selectedTimesOfDay.add('Night');
+        } else {
+          _selectedTimesOfDay.add('Morning');
+        }
       }
-    } else {
-      _selectedTimeOfDay = 'Morning';
+    }
+    if (_selectedTimesOfDay.isEmpty) {
+      _selectedTimesOfDay.add('Morning');
     }
 
     _selectedPatientId = widget.patientId ?? widget.existingMedicine?.patientId;
@@ -234,7 +225,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     );
   }
 
-  Widget _buildTimeRadioOption({
+  Widget _buildTimeCheckboxOption({
     required String value,
     required String title,
     required String timeSubtitle,
@@ -242,14 +233,27 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     required Color iconColor,
     required Color iconBgColor,
   }) {
-    final isSelected = selectedTimeOfDay == value;
+    final isSelected = _selectedTimesOfDay.contains(value);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10.0),
       child: InkWell(
         onTap: () {
           setState(() {
-            _selectedTimeOfDay = value;
+            if (_selectedTimesOfDay.contains(value)) {
+              if (_selectedTimesOfDay.length > 1) {
+                _selectedTimesOfDay.remove(value);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('At least one time of day must be selected.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            } else {
+              _selectedTimesOfDay.add(value);
+            }
           });
         },
         borderRadius: BorderRadius.circular(14),
@@ -266,17 +270,30 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
           ),
           child: Row(
             children: [
-              // Radio widget
-              Radio<String>(
-                value: value,
-                groupValue: selectedTimeOfDay,
+              // Checkbox widget
+              Checkbox(
+                value: isSelected,
                 activeColor: AppColors.brandTeal,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
                 onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedTimeOfDay = val);
-                  }
+                  setState(() {
+                    if (val == true) {
+                      _selectedTimesOfDay.add(value);
+                    } else {
+                      if (_selectedTimesOfDay.length > 1) {
+                        _selectedTimesOfDay.remove(value);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('At least one time of day must be selected.'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    }
+                  });
                 },
               ),
               const SizedBox(width: 8),
@@ -332,24 +349,34 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
       return;
     }
 
+    if (_selectedTimesOfDay.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one time of day (Morning, Evening, or Night).'),
+          backgroundColor: AppColors.statusLate,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
       final now = DateTime.now();
 
-      // Schedule time corresponding to the selected radio button
-      DateTime doseTime;
-      switch (selectedTimeOfDay) {
-        case 'Evening':
-          doseTime = DateTime(now.year, now.month, now.day, 18, 0);
-          break;
-        case 'Night':
-          doseTime = DateTime(now.year, now.month, now.day, 21, 0);
-          break;
-        case 'Morning':
-        default:
-          doseTime = DateTime(now.year, now.month, now.day, 8, 0);
-          break;
+      final List<DateTime> scheduledTimesList = [];
+      if (_selectedTimesOfDay.contains('Morning')) {
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 8, 0));
+      }
+      if (_selectedTimesOfDay.contains('Evening')) {
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 18, 0));
+      }
+      if (_selectedTimesOfDay.contains('Night')) {
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 21, 0));
+      }
+
+      if (scheduledTimesList.isEmpty) {
+        scheduledTimesList.add(DateTime(now.year, now.month, now.day, 8, 0));
       }
 
       final patientId = _isCaregiver
@@ -364,7 +391,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
         dosage: dosageController.text.trim(),
         frequency: frequency,
         instructions: instructionsController.text.trim(),
-        scheduledTimes: [doseTime],
+        scheduledTimes: scheduledTimesList,
         createdAt: widget.existingMedicine?.createdAt ?? now,
         addedViaScan: widget.existingMedicine?.addedViaScan ?? widget.isFromScan,
         synced: false,
@@ -373,15 +400,19 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
       // Persist in local storage
       await LocalDbService.instance.upsertMedicine(medicine);
 
-      // Create initial dose log for the day
-      final doseLog = DoseLog(
-        id: 'dose_${medicineId}_${now.day}',
-        medicineId: medicineId,
-        scheduledFor: doseTime,
-        status: DoseStatus.pending,
-        synced: false,
-      );
-      await LocalDbService.instance.upsertDoseLog(doseLog);
+      // Create initial dose log for each scheduled time for the day
+      final List<DoseLog> createdLogs = [];
+      for (final doseTime in scheduledTimesList) {
+        final doseLog = DoseLog(
+          id: 'dose_${medicineId}_${now.day}_${doseTime.hour}_${doseTime.minute}',
+          medicineId: medicineId,
+          scheduledFor: doseTime,
+          status: DoseStatus.pending,
+          synced: false,
+        );
+        await LocalDbService.instance.upsertDoseLog(doseLog);
+        createdLogs.add(doseLog);
+      }
 
       // Persist to Firebase Firestore (times out gracefully if offline)
       try {
@@ -405,14 +436,18 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
 
         await LocalDbService.instance.markMedicineSynced(medicine.id);
 
-        // 3. Save dose log in Firestore
-        await firestore
-            .collection('dose_logs')
-            .doc(doseLog.id)
-            .set(doseLog.toMap(), SetOptions(merge: true))
-            .timeout(const Duration(milliseconds: 1500));
+        // 3. Save each dose log in Firestore
+        for (final doseLog in createdLogs) {
+          try {
+            await firestore
+                .collection('dose_logs')
+                .doc(doseLog.id)
+                .set(doseLog.toMap(), SetOptions(merge: true))
+                .timeout(const Duration(milliseconds: 1500));
 
-        await LocalDbService.instance.markSynced(doseLog.id);
+            await LocalDbService.instance.markSynced(doseLog.id);
+          } catch (_) {}
+        }
       } catch (firestoreError) {
         debugPrint('Firestore save deferred or offline: $firestoreError');
       }
@@ -989,7 +1024,14 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _frequency = val);
+                            setState(() {
+                              _frequency = val;
+                              if (val == 'Twice daily') {
+                                _selectedTimesOfDay = {'Morning', 'Night'};
+                              } else if (val == 'Three times daily' || val == 'Every 8 hours') {
+                                _selectedTimesOfDay = {'Morning', 'Evening', 'Night'};
+                              }
+                            });
                           }
                         },
                         validator: (val) {
@@ -1000,9 +1042,77 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         },
                       ),
 
-                      // 4. Radio Button: Morning, Evening, Night
-                      _buildFieldLabel(l10n?.whenToTake ?? 'When to take (Time of day)'),
-                      _buildTimeRadioOption(
+                      // 4. When to take (Time of day) - Multi-select Checkboxes
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _buildFieldLabel(l10n?.whenToTake ?? 'When to take (Time of day)'),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTimesOfDay = {'Morning', 'Evening', 'Night'};
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandTeal.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'All 3',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.brandTeal,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTimesOfDay = {'Morning', 'Night'};
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandNavy.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Morning & Night',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.brandNavy,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          'Check one, two, or all times of day when this medicine should be taken.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        ),
+                      ),
+                      _buildTimeCheckboxOption(
                         value: 'Morning',
                         title: l10n?.morning ?? 'Morning',
                         timeSubtitle: 'Around 8:00 AM • Recommended with breakfast',
@@ -1010,7 +1120,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         iconColor: const Color(0xFFD97706),
                         iconBgColor: const Color(0xFFFEF3C7),
                       ),
-                      _buildTimeRadioOption(
+                      _buildTimeCheckboxOption(
                         value: 'Evening',
                         title: l10n?.evening ?? 'Evening',
                         timeSubtitle: 'Around 6:00 PM • Recommended with dinner',
@@ -1018,7 +1128,7 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         iconColor: const Color(0xFFEA580C),
                         iconBgColor: const Color(0xFFFFEDD5),
                       ),
-                      _buildTimeRadioOption(
+                      _buildTimeCheckboxOption(
                         value: 'Night',
                         title: l10n?.night ?? 'Night',
                         timeSubtitle: 'Around 9:00 PM • Recommended before sleep',
