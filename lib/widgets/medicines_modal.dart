@@ -675,7 +675,10 @@ class MedicineDetailSheet extends StatelessWidget {
     Navigator.of(context).pop();
     final updated = await Navigator.of(context).push<Medicine>(
       MaterialPageRoute(
-        builder: (_) => AddManuallyScreen(existingMedicine: medicine),
+        builder: (_) => AddManuallyScreen(
+          existingMedicine: medicine,
+          patientId: patientId,
+        ),
       ),
     );
     if (updated != null) {

@@ -95,17 +95,46 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
     super.initState();
     _formKey = GlobalKey<FormState>();
     _nameController = TextEditingController(
-      text: widget.initialName ?? (widget.isFromScan ? 'Metformin' : ''),
+      text: widget.existingMedicine?.name ??
+          widget.initialName ??
+          (widget.isFromScan ? 'Metformin' : ''),
     );
     _dosageController = TextEditingController(
-      text: widget.initialDosage ?? (widget.isFromScan ? '500 mg' : ''),
+      text: widget.existingMedicine?.dosage ??
+          widget.initialDosage ??
+          (widget.isFromScan ? '500 mg' : ''),
     );
     _instructionsController = TextEditingController(
-      text: widget.initialInstructions ?? (widget.isFromScan ? 'Take with food' : ''),
+      text: widget.existingMedicine?.instructions ??
+          widget.initialInstructions ??
+          (widget.isFromScan ? 'Take with food' : ''),
     );
-    _frequency = 'Once daily';
-    _selectedTimeOfDay = 'Morning';
-    _selectedPatientId = widget.patientId;
+
+    final existingFreq = widget.existingMedicine?.frequency;
+    if (existingFreq != null && existingFreq.isNotEmpty) {
+      final matched = _frequencies.firstWhere(
+        (f) => f.toLowerCase() == existingFreq.trim().toLowerCase(),
+        orElse: () => _frequencies.contains(existingFreq) ? existingFreq : _frequencies.first,
+      );
+      _frequency = matched;
+    } else {
+      _frequency = 'Once daily';
+    }
+
+    if (widget.existingMedicine?.scheduledTimes.isNotEmpty == true) {
+      final hour = widget.existingMedicine!.scheduledTimes.first.hour;
+      if (hour >= 17 && hour < 20) {
+        _selectedTimeOfDay = 'Evening';
+      } else if (hour >= 20 || hour < 5) {
+        _selectedTimeOfDay = 'Night';
+      } else {
+        _selectedTimeOfDay = 'Morning';
+      }
+    } else {
+      _selectedTimeOfDay = 'Morning';
+    }
+
+    _selectedPatientId = widget.patientId ?? widget.existingMedicine?.patientId;
     _selectedPatientName = widget.patientName;
     _initCaregiverPatientSelection();
   }
@@ -379,9 +408,11 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  _isCaregiver && _selectedPatientName != null && _selectedPatientName!.isNotEmpty
-                      ? '${medicine.name} added for $_selectedPatientName!'
-                      : '${medicine.name} added successfully!',
+                  widget.existingMedicine != null
+                      ? '${medicine.name} updated successfully!'
+                      : (_isCaregiver && _selectedPatientName != null && _selectedPatientName!.isNotEmpty
+                          ? '${medicine.name} added for $_selectedPatientName!'
+                          : '${medicine.name} added successfully!'),
                 ),
               ),
             ],
@@ -652,7 +683,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          l10n?.manualEntrySubtitle ?? 'Fill in the medication details and reminder schedule below.',
+                          widget.existingMedicine != null
+                              ? 'Update the medication details and reminder schedule below.'
+                              : (l10n?.manualEntrySubtitle ?? 'Fill in the medication details and reminder schedule below.'),
                           style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
                         ),
                       ],
@@ -955,7 +988,9 @@ class _AddManuallyScreenState extends State<AddManuallyScreen> {
                           label: Text(
                             _isSaving
                                 ? (l10n?.saving ?? 'Saving...')
-                                : (l10n?.saveMedicine ?? 'Save medicine'),
+                                : (widget.existingMedicine != null
+                                    ? 'Update medicine'
+                                    : (l10n?.saveMedicine ?? 'Save medicine')),
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(

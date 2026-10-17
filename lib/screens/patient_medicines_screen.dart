@@ -9,10 +9,12 @@ import '../services/local_db_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
 import '../widgets/profile_menu_button.dart';
+import 'add_manually_screen.dart';
 import 'add_medicine_screen.dart';
 import 'caregiver_screen.dart';
 import 'pill_calendar_screen.dart';
 import 'today_dashboard_screen.dart';
+import '../widgets/medicines_modal.dart';
 
 /// Full page to view all medicines added for the patient.
 class PatientMedicinesScreen extends StatefulWidget {
@@ -204,6 +206,22 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete: $e')),
       );
+    }
+  }
+
+  Future<void> _editMedicine(Medicine med) async {
+    final updated = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddManuallyScreen(
+          existingMedicine: med,
+          patientId: _isCaregiverMode ? _effectivePatientId : null,
+          patientName: _isCaregiverMode ? _patientName : null,
+        ),
+      ),
+    );
+
+    if (updated != null && mounted) {
+      await _loadAllMedicines();
     }
   }
 
@@ -577,9 +595,24 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
           }).join(', ')
         : '08:00';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+    return InkWell(
+      onTap: () {
+        if (!_isCaregiverMode) {
+          _editMedicine(med);
+        } else {
+          showMedicineDetailModal(
+            context: context,
+            medicine: med,
+            isCaregiver: _isCaregiverMode,
+            patientId: _effectivePatientId,
+            onChanged: _loadAllMedicines,
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -660,12 +693,18 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
                     ],
                   ),
                 ),
-              if (!_isCaregiverMode)
+              if (!_isCaregiverMode) ...[
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: AppColors.brandTeal, size: 20),
+                  onPressed: () => _editMedicine(med),
+                  tooltip: 'Edit',
+                ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 20),
                   onPressed: () => _deleteMedicine(med),
                   tooltip: 'Remove',
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -745,6 +784,7 @@ class _PatientMedicinesScreenState extends State<PatientMedicinesScreen> {
             ),
           ],
         ],
+      ),
       ),
     );
   }
