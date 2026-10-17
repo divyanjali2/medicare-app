@@ -1,45 +1,294 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'dart:ui';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/language_selector.dart';
+import '../widgets/profile_menu_button.dart';
+import '../models/user_profile.dart';
+import '../services/auth_service.dart';
+import '../services/ocr_service.dart';
+import 'caregiver_screen.dart';
 import 'today_dashboard_screen.dart';
 import 'pill_calendar_screen.dart';
-import 'welcome_screen.dart';
 import 'add_manually_screen.dart';
-import 'caregiver_screen.dart';
+import 'patient_medicines_screen.dart';
 
 class AddMedicineScreen extends StatefulWidget {
-  const AddMedicineScreen({super.key});
+  final String? patientId;
+  final String? patientName;
+
+  const AddMedicineScreen({
+    super.key,
+    this.patientId,
+    this.patientName,
+  });
 
   @override
   State<AddMedicineScreen> createState() => _AddMedicineScreenState();
 }
 
 class _AddMedicineScreenState extends State<AddMedicineScreen> {
-  int _currentIndex = 2; // Add tab
+  final int _currentIndex = 2; // Add tab
+  String _effectivePatientId = 'p1';
+  bool _isCaregiverMode = false;
+  String _patientName = '';
+
+  List<UserProfile> _linkedPatients = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvePatient();
+  }
+
+  Future<void> _resolvePatient() async {
+    final currentUid = AuthService.instance.currentUser?.uid;
+    final profile = await AuthService.instance.fetchCurrentUserProfile(currentUid);
+
+    String patientId = widget.patientId ?? '';
+    bool caregiverMode = widget.patientId != null;
+    List<UserProfile> linked = [];
+
+    if (profile?.role == UserRole.caregiver) {
+      caregiverMode = true;
+      if (currentUid != null) {
+        linked = await AuthService.instance.getLinkedPatients(currentUid);
+      }
+      if (patientId.isEmpty && linked.isNotEmpty) {
+        patientId = linked.first.uid;
+      } else if (patientId.isEmpty && profile!.linkedPatientIds.isNotEmpty) {
+        patientId = profile.linkedPatientIds.first;
+      }
+    }
+
+    if (patientId.isEmpty) {
+      patientId = currentUid ?? (profile?.uid ?? 'p1');
+    }
+
+    String patientName = widget.patientName ?? '';
+    if (patientName.isEmpty && linked.isNotEmpty) {
+      final matched = linked.where((p) => p.uid == patientId).firstOrNull;
+      if (matched != null) {
+        patientName = matched.name;
+      }
+    }
+    if (patientName.isEmpty) {
+      patientName = profile?.name ?? '';
+    }
+
+    if (mounted) {
+      setState(() {
+        _effectivePatientId = patientId;
+        _isCaregiverMode = caregiverMode;
+        _linkedPatients = linked;
+        _patientName = patientName;
+      });
+    }
+  }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
-    
+    Widget nextScreen;
     if (index == 0) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const TodayDashboardScreen()),
-        (r) => false,
+      nextScreen = TodayDashboardScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
       );
     } else if (index == 1) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const PillCalendarScreen()),
-        (r) => false,
+      nextScreen = PillCalendarScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
       );
     } else if (index == 3) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const CaregiverScreen()),
-        (r) => false,
+      nextScreen = PatientMedicinesScreen(
+        viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+        viewingPatientName: _isCaregiverMode ? _patientName : null,
       );
+    } else if (index == 4 && _isCaregiverMode) {
+      nextScreen = const CaregiverScreen();
+    } else {
+      return;
     }
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => nextScreen,
+        transitionDuration: const Duration(milliseconds: 1),
+        reverseTransitionDuration: const Duration(milliseconds: 1),
+        transitionsBuilder: (_, __, ___, child) => child,
+      ),
+    );
+  }
+
+  Future<void> _pickAndScanImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: source,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (photo == null) {
+        // User cancelled picker
+        return;
+      }
+
+      List<String> candidates = [];
+      try {
+        final ocr = OcrService();
+        try {
+          candidates = await ocr.scanName(File(photo.path));
+        } finally {
+          await ocr.dispose();
+        }
+      } catch (ocrError) {
+        debugPrint('OCR scanning error: $ocrError');
+      }
+
+      if (candidates.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Couldn't read text from card, please enter details manually."),
+            backgroundColor: AppColors.statusLate,
+          ),
+        );
+      }
+
+      if (!mounted) return;
+
+      final navigator = Navigator.of(context);
+      final result = await navigator.push(
+        MaterialPageRoute(
+          builder: (_) => AddManuallyScreen(
+            isFromScan: true,
+            candidates: candidates,
+            patientId: _isCaregiverMode ? _effectivePatientId : null,
+            patientName: _isCaregiverMode ? _patientName : null,
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => TodayDashboardScreen(
+              viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+              viewingPatientName: _isCaregiverMode ? _patientName : null,
+            ),
+          ),
+          (r) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Image selection error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              source == ImageSource.camera
+                  ? 'Camera access unavailable. Switching to manual entry.'
+                  : 'Gallery access unavailable. Switching to manual entry.',
+            ),
+            backgroundColor: AppColors.statusLate,
+          ),
+        );
+        final navigator = Navigator.of(context);
+        final result = await navigator.push(
+          MaterialPageRoute(
+            builder: (_) => AddManuallyScreen(
+              isFromScan: false,
+              patientId: _isCaregiverMode ? _effectivePatientId : null,
+              patientName: _isCaregiverMode ? _patientName : null,
+            ),
+          ),
+        );
+        if (result != null && mounted) {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => TodayDashboardScreen(
+                viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                viewingPatientName: _isCaregiverMode ? _patientName : null,
+              ),
+            ),
+            (r) => false,
+          );
+        }
+      }
+    }
+  }
+
+  void _showImageSourcePicker() {
+    final l10n = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n?.scanMedicineCard ?? 'Scan Medicine Card',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Choose where to get the medicine image from:',
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandTeal.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.brandTeal),
+                  ),
+                  title: Text(l10n?.takePhoto ?? 'Take a photo', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Point camera at the medicine card or box'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _pickAndScanImage(ImageSource.camera);
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandNavy.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.photo_library_outlined, color: AppColors.brandNavy),
+                  ),
+                  title: Text(l10n?.uploadFromGallery ?? 'Upload from gallery', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Choose a photo from your device library'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _pickAndScanImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -57,89 +306,176 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandTeal,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.monitor_heart, color: Colors.white, size: 24),
+                  if (Navigator.of(context).canPop())
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textDark),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n?.appName ?? 'MediCare',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
+                    ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _isCaregiverMode ? AppColors.brandNavy : AppColors.brandTeal,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              _isCaregiverMode ? Icons.people_outline : Icons.monitor_heart,
+                              color: Colors.white,
+                              size: 24,
                             ),
                           ),
-                          Text(
-                            l10n?.patientViewSubtitle ?? 'Patient view',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n?.appName ?? 'MediCare',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              Text(
+                                _isCaregiverMode
+                                    ? 'Caregiver View • Add Medication'
+                                    : (l10n?.patientViewSubtitle ?? 'Patient view'),
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _isCaregiverMode ? AppColors.brandNavy : AppColors.textMuted,
+                                  fontWeight: _isCaregiverMode ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const LanguagePillSelector(),
-                ],
-              ),
-            ),
-            
-            // Action Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.person_outline, size: 18),
-                    label: Text(l10n?.caregiverMode ?? 'Caregiver'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                        (r) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.logout, size: 18),
-                    label: Text(l10n?.signOutButton ?? 'Sign out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textDark,
-                      side: const BorderSide(color: AppColors.borderSubtle),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LanguagePillSelector(),
+                      SizedBox(width: 8),
+                      ProfileMenuButton(),
+                    ],
                   ),
                 ],
               ),
             ),
-            
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: Divider(color: AppColors.borderSubtle),
-            ),
+            if (_isCaregiverMode)
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8EEF5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.brandNavy.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people_outline, color: AppColors.brandNavy, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Adding medicine for patient:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandNavy,
+                            ),
+                          ),
+                          if (_linkedPatients.length > 1)
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _linkedPatients.any((p) => p.uid == _effectivePatientId)
+                                    ? _effectivePatientId
+                                    : _linkedPatients.first.uid,
+                                isDense: true,
+                                isExpanded: true,
+                                icon: const Icon(Icons.arrow_drop_down, color: AppColors.brandNavy),
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.brandNavy,
+                                ),
+                                items: _linkedPatients.map((p) {
+                                  return DropdownMenuItem<String>(
+                                    value: p.uid,
+                                    child: Text(
+                                      '${p.name.isNotEmpty ? p.name : "Patient"} (${(p.phoneNumber ?? "").isNotEmpty ? p.phoneNumber : p.uid})',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    final selected = _linkedPatients.firstWhere((p) => p.uid == val);
+                                    setState(() {
+                                      _effectivePatientId = selected.uid;
+                                      _patientName = selected.name;
+                                    });
+                                  }
+                                },
+                              ),
+                            )
+                          else
+                            Text(
+                              _patientName.isNotEmpty ? _patientName : 'Patient ($_effectivePatientId)',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.brandNavy,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (Navigator.of(context).canPop())
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
+                          child: Text(
+                            'Exit',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.brandNavy,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            const Divider(height: 1, color: AppColors.borderSubtle),
 
             // Main Content
             Expanded(
@@ -149,7 +485,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      l10n?.addMedicine ?? 'Add a medicine',
+                      _isCaregiverMode
+                          ? 'Add medicine for $_patientName'
+                          : (l10n?.addMedicine ?? 'Add a medicine'),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -169,13 +507,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                     
                     // Scan Box
                     GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const AddManuallyScreen(isFromScan: true),
-                          ),
-                        );
-                      },
+                      onTap: _showImageSourcePicker,
                       child: CustomPaint(
                         painter: DashedRectPainter(
                           color: AppColors.brandTeal,
@@ -186,7 +518,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 40),
                           decoration: BoxDecoration(
-                            color: AppColors.brandTeal.withOpacity(0.08),
+                            color: AppColors.brandTeal.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Column(
@@ -206,7 +538,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                l10n?.scanMedicineLabel ?? 'Scan medicine label',
+                                l10n?.scanMedicineCard ?? 'Scan medicine card',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -227,7 +559,32 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+
+                    // Upload from gallery button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickAndScanImage(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_outlined, size: 20, color: AppColors.brandTeal),
+                        label: Text(
+                          l10n?.uploadFromGallery ?? 'Upload from gallery',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.brandTeal,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.brandTeal, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          backgroundColor: AppColors.brandTeal.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
                     
                     // Or Divider
                     Row(
@@ -251,12 +608,28 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
+                        onPressed: () async {
+                          final navigator = Navigator.of(context);
+                          final result = await navigator.push(
                             MaterialPageRoute(
-                              builder: (_) => const AddManuallyScreen(isFromScan: false),
+                              builder: (_) => AddManuallyScreen(
+                                isFromScan: false,
+                                patientId: _isCaregiverMode ? _effectivePatientId : null,
+                                patientName: _isCaregiverMode ? _patientName : null,
+                              ),
                             ),
                           );
+                          if (result != null && mounted) {
+                            navigator.pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => TodayDashboardScreen(
+                                  viewingPatientId: _isCaregiverMode ? _effectivePatientId : null,
+                                  viewingPatientName: _isCaregiverMode ? _patientName : null,
+                                ),
+                              ),
+                              (r) => false,
+                            );
+                          }
                         },
                         icon: const Icon(Icons.add, size: 20),
                         label: Text(
@@ -335,7 +708,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               icon: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.brandTeal.withOpacity(0.15),
+                  color: AppColors.brandTeal.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(Icons.add, color: AppColors.brandTeal),
@@ -343,10 +716,23 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
               label: 'Add',
             ),
             const BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline),
-              activeIcon: Icon(Icons.people),
-              label: 'Care',
+              icon: Icon(Icons.medication_outlined),
+              activeIcon: Icon(Icons.medication),
+              label: 'Medicines',
             ),
+            if (_isCaregiverMode)
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_outline),
+                activeIcon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCF0F2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people, color: Color(0xFF0E7485)),
+                ),
+                label: 'Care',
+              ),
           ],
         ),
       ),

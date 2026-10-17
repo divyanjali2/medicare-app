@@ -29,8 +29,16 @@ class SyncService {
     if (_syncing) return;
     _syncing = true;
     try {
-      final pending = await LocalDbService.instance.getUnsyncedDoseLogs();
-      for (final log in pending) {
+      // 1. Sync pending medicines
+      final pendingMedicines = await LocalDbService.instance.getUnsyncedMedicines();
+      for (final med in pendingMedicines) {
+        await syncMedicine(med);
+        await LocalDbService.instance.markMedicineSynced(med.id);
+      }
+
+      // 2. Sync pending dose logs
+      final pendingLogs = await LocalDbService.instance.getUnsyncedDoseLogs();
+      for (final log in pendingLogs) {
         await _firestore
             .collection('dose_logs')
             .doc(log.id)
@@ -41,11 +49,34 @@ class SyncService {
       await LogService.instance.logError(
         e,
         stackTrace: st,
-        reason: 'SyncService failed while uploading unsynced dose logs',
+        reason: 'SyncService failed while uploading unsynced data',
         category: 'SYNC_ERROR',
       );
     } finally {
       _syncing = false;
+    }
+  }
+
+  Future<void> syncMedicine(dynamic medicine) async {
+    try {
+      final data = medicine.toMap();
+      await _firestore
+          .collection('medicines')
+          .doc(medicine.id as String)
+          .set(data, SetOptions(merge: true));
+      await _firestore
+          .collection('users')
+          .doc(medicine.patientId as String)
+          .collection('medicines')
+          .doc(medicine.id as String)
+          .set(data, SetOptions(merge: true));
+    } catch (e, st) {
+      await LogService.instance.logError(
+        e,
+        stackTrace: st,
+        reason: 'SyncService failed while uploading medicine to Firestore',
+        category: 'SYNC_ERROR',
+      );
     }
   }
 }

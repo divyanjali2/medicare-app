@@ -17,17 +17,20 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
 
   bool _soundEnabled = true;
   bool _vibrationEnabled = true;
   int _reminderStyleIndex = 0;
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -36,6 +39,7 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final phone = _phoneController.text.trim();
+      final password = _passwordController.text.trim();
       final email = _emailController.text.trim();
 
       if (name.isEmpty) {
@@ -52,6 +56,13 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
         return;
       }
 
+      if (password.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password must be at least 6 characters.')),
+        );
+        return;
+      }
+
       setState(() => _isLoading = true);
 
       try {
@@ -63,6 +74,7 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
         await AuthService.instance.signUpCaregiver(
           name: name,
           phoneNumber: phone,
+          password: password,
           email: email.isNotEmpty ? email : null,
           soundEnabled: _soundEnabled,
           vibrationEnabled: _vibrationEnabled,
@@ -219,6 +231,30 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
                   controller: _phoneController,
                   placeholder: l10n?.phoneNumberHint ?? '+94 77 123 4567',
                   keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 20),
+                
+                _buildFieldLabel('Password'),
+                _buildTextField(
+                  controller: _passwordController,
+                  placeholder: 'Create a password (min 6 characters)',
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.textMuted,
+                    ),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.trim().length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
                 
@@ -381,11 +417,11 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.send_to_mobile_outlined, size: 20),
+                              const Icon(Icons.person_add_rounded, size: 20),
                               const SizedBox(width: 12),
-                              Text(
-                                l10n?.sendVerificationCode ?? 'Send verification code',
-                                style: const TextStyle(
+                              const Text(
+                                'Sign Up',
+                                style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -422,10 +458,15 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
     required String placeholder,
     TextInputType? keyboardType,
     IconData? prefixIcon,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
       style: const TextStyle(
         color: AppColors.textDark,
         fontSize: 16,
@@ -437,6 +478,7 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
         filled: true,
         fillColor: Colors.white,
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: AppColors.textMuted) : null,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.borderSubtle),
@@ -448,6 +490,14 @@ class _CaregiverSignupScreenState extends State<CaregiverSignupScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.brandTeal, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
         ),
       ),
     );

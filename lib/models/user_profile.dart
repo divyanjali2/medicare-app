@@ -21,6 +21,26 @@ class UserProfile {
     this.linkedCaregiverIds = const [],
   });
 
+  UserProfile copyWith({
+    String? uid,
+    String? name,
+    UserRole? role,
+    AppLanguage? language,
+    String? phoneNumber,
+    List<String>? linkedPatientIds,
+    List<String>? linkedCaregiverIds,
+  }) {
+    return UserProfile(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      language: language ?? this.language,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      linkedPatientIds: linkedPatientIds ?? this.linkedPatientIds,
+      linkedCaregiverIds: linkedCaregiverIds ?? this.linkedCaregiverIds,
+    );
+  }
+
   Map<String, dynamic> toMap() => {
         'uid': uid,
         'name': name,
